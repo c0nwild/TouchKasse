@@ -10,11 +10,6 @@ tk_root_base.wm_attributes('-fullscreen', 'true')
 
 class DBAccess:
 
-    _cursor = None
-    _db_conn = None
-    _db_name = ''
-    _table_name = ''
-
     def __init__(self, db_name, table_name):
         self._db_name = db_name
         self._table_name = table_name
@@ -61,12 +56,6 @@ class DBAccess:
 
 class UIFrameItem:
 
-    _name = ''
-    _width = 0
-    _height = 0
-    _pos = ''
-    _child_elements = []
-
     def __init__(self, name, width, height, tk_root, color='white', pos=tk.TOP):
         self._tk_master = tk_root
         self._name = name
@@ -94,12 +83,13 @@ class UIFrameItem:
                                height=self._height)
         self._frame.pack_propagate(False)
 
-        self._frame.pack(side=self._pos)
+        if self._pos is not '':
+            self._frame.pack(side=self._pos)
+        else:
+            self._frame.pack()
 
 
 class UIButtonItem:
-
-    _name = ''
 
     def __init__(self, name, _tk_root):
         self._tk_master = _tk_root
@@ -127,12 +117,6 @@ class UIButtonItem:
 
 class FoodButtonItem(UIButtonItem):
 
-    _event_cb = None
-
-    _price = 0.0
-    _sold = tk.IntVar()
-
-    _tk_master = None
     _db_interface = DBAccess('touchReg.db', 'food_list')
 
     def __init__(self, name, price, _tk_root):
@@ -165,13 +149,6 @@ class FoodButtonItem(UIButtonItem):
 
 
 class CashButtonItem(UIButtonItem):
-
-    _event_cb = None
-
-    _value = 0.0
-
-    _tk_master = None
-    #_db_interface = DBAccess('touchReg.db', 'cash_list')
 
     def __init__(self, name, value, _tk_root):
         super(CashButtonItem, self).__init__(name, _tk_root)
@@ -301,7 +278,7 @@ class TouchRegisterUI:
                                 ),
             'tk_price': tk.Label(self.tk_display_element_frame.get_frame(),
                                  text="{price:.02f}€".format(price=price),
-                                 font=('Arial',15),
+                                 font=('Arial', 15),
                                  justify=tk.LEFT,
                                  anchor=tk.W,
                                  width=250,
