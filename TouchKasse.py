@@ -93,6 +93,7 @@ class UIFrameItem:
                                width=self._width,
                                height=self._height)
         self._frame.pack_propagate(False)
+
         self._frame.pack(side=self._pos)
 
 
@@ -265,7 +266,7 @@ class TouchRegisterUI:
                                              height=150,
                                              color='green',
                                              tk_root=self.tk_food_function_frame)
-        self.tk_function_frame.get_frame().pack(side=tk.BOTTOM)
+        self.tk_function_frame.get_frame().pack()
         self.function_element_factory()
 
     def food_element_factory(self):
@@ -292,6 +293,7 @@ class TouchRegisterUI:
         disp_obj = {
             'tk_name': tk.Label(self.tk_display_element_frame.get_frame(),
                                 text=name,
+                                font=('Arial', 15),
                                 justify=tk.LEFT,
                                 anchor=tk.W,
                                 width=250,
@@ -299,6 +301,7 @@ class TouchRegisterUI:
                                 ),
             'tk_price': tk.Label(self.tk_display_element_frame.get_frame(),
                                  text="{price:.02f}€".format(price=price),
+                                 font=('Arial',15),
                                  justify=tk.LEFT,
                                  anchor=tk.W,
                                  width=250,
@@ -318,14 +321,14 @@ class TouchRegisterUI:
                                       text='Löschen',
                                       font=('Arial', 20),
                                       width=15,
-                                      height=1,
+                                      height=2,
                                       command=self.clear_display_element_list)
 
         got_cash_button = tk.Button(self.tk_function_frame.get_frame(),
                                     text='Gegeben',
                                     font=('Arial', 20),
                                     width=15,
-                                    height=1,
+                                    height=2,
                                     command=self.got_cash)
 
         got_cash_button.pack(side=tk.LEFT)
@@ -387,24 +390,24 @@ class TouchRegisterUI:
         got_cash_ok_button = tk.Button(self.tk_function_frame.get_frame(),
                                        text='Ok',
                                        font=('Arial', 20),
-                                       width=15,
-                                       height=1,
+                                       width=10,
+                                       height=2,
                                        command=lambda: self.got_cash_done(True))
         got_cash_ok_button.pack(side=tk.LEFT)
 
         got_cash_reset_button = tk.Button(self.tk_function_frame.get_frame(),
                                           text='Löschen',
                                           font=('Arial', 20),
-                                          width=15,
-                                          height=1,
+                                          width=10,
+                                          height=2,
                                           command=self.reset_cash_display)
         got_cash_reset_button.pack(side=tk.LEFT)
 
         got_cash_cancel_button = tk.Button(self.tk_function_frame.get_frame(),
                                            text='Abbrechen',
                                            font=('Arial', 20),
-                                           width=15,
-                                           height=1,
+                                           width=10,
+                                           height=2,
                                            command=lambda: self.got_cash_done(False))
         got_cash_cancel_button.pack(side=tk.LEFT)
 
