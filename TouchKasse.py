@@ -5,7 +5,7 @@ from abc import abstractmethod
 tk_root_base = tk.Tk()
 tk_root_base.geometry('{}x{}'.format(1200, 800))
 tk_root_base.resizable(width=False, height=False)
-tk_root_base.wm_attributes('-fullscreen','true')
+tk_root_base.wm_attributes('-fullscreen', 'true')
 
 
 class DBAccess:
@@ -399,7 +399,7 @@ class TouchRegisterUI:
                                            command=lambda: self.got_cash_done(False))
         got_cash_cancel_button.pack()
 
-    def got_cash_done(self, true):
+    def got_cash_done(self, is_transaction_done):
         self.tk_food_frame.clear()
         self.tk_function_frame.clear()
 
@@ -407,13 +407,15 @@ class TouchRegisterUI:
 
         self.function_element_factory()  # restore function buttons
 
-        if true is True:
+        if is_transaction_done is True:
             self.tk_display_cash.config(
                 text="ZURÜCK: {cash:.02f} €".format(
                     cash=self.current_cash - self.current_sum
                 )
             )
             self.transaction_done = True
+        else:
+            self.reset_transaction()
 
     def reset_transaction(self):
         self.reset_cash_display()
