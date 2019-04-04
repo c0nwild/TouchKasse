@@ -3,8 +3,9 @@ import tkinter as tk
 from abc import abstractmethod
 
 tk_root_base = tk.Tk()
-tk_root_base.geometry('{}x{}'.format(1024, 768))
+tk_root_base.geometry('{}x{}'.format(1200, 800))
 tk_root_base.resizable(width=False, height=False)
+tk_root_base.wm_attributes('-fullscreen','true')
 
 
 class DBAccess:
@@ -109,7 +110,7 @@ class UIButtonItem:
                          text=self._name,
                          font=('Arial', 20),
                          width=510,
-                         height=2,
+                         height=1,
                          command=self.button_callback)
 
     def get_name(self):
@@ -194,19 +195,19 @@ class TouchRegisterUI:
 
     def __init__(self):
         """Main frame"""
-        self.tk_main_frame = UIFrameItem('main_frame', width=1024, height=768, tk_root=tk_root_base)
+        self.tk_main_frame = UIFrameItem('main_frame', width=1200, height=800, tk_root=tk_root_base)
         self.tk_main_frame.get_frame().pack()
 
         """Display"""
         self.tk_display_frame = UIFrameItem('display_frame',
-                                            width=512,
-                                            height=768,
+                                            width=600,
+                                            height=800,
                                             tk_root=self.tk_main_frame.get_frame())
         self.tk_display_frame.get_frame().pack_propagate(False)
         self.tk_display_frame.get_frame().pack(side=tk.LEFT)
 
         self.tk_display_element_frame = UIFrameItem('display_elements',
-                                                    width=512,
+                                                    width=600,
                                                     height=700,
                                                     pos=tk.LEFT,
                                                     tk_root=self.tk_display_frame.get_frame())
@@ -217,7 +218,7 @@ class TouchRegisterUI:
                                        text='SUMME',
                                        justify=tk.LEFT,
                                        anchor=tk.W,
-                                       width=510,
+                                       width=600,
                                        font=('Arial', 20),
                                        pady=10,
                                        padx=10
@@ -229,7 +230,7 @@ class TouchRegisterUI:
                                         text='BAR',
                                         justify=tk.LEFT,
                                         anchor=tk.W,
-                                        width=512,
+                                        width=600,
                                         font=('Arial', 20),
                                         pady=10,
                                         padx=10
@@ -238,14 +239,14 @@ class TouchRegisterUI:
         self.tk_display_cash.pack(side=tk.BOTTOM)
 
         """Frame für Essenstasten und Funktionstasten"""
-        self.tk_food_function_frame = tk.Frame(self.tk_main_frame.get_frame(), height=768, width=512)
+        self.tk_food_function_frame = tk.Frame(self.tk_main_frame.get_frame(), height=800, width=600)
         self.tk_food_function_frame.pack_propagate(False)
         self.tk_food_function_frame.pack(side=tk.RIGHT)
 
         """Frame für Essenstasten"""
         self.tk_food_frame = UIFrameItem('food_buttons',
-                                         width=512,
-                                         height=600,
+                                         width=600,
+                                         height=650,
                                          tk_root=self.tk_food_function_frame)
         self.tk_food_frame.get_frame().pack_propagate(False)
         self.tk_food_frame.get_frame().pack(side=tk.TOP)
@@ -253,8 +254,8 @@ class TouchRegisterUI:
 
         """Frame für Funktionstasten"""
         self.tk_function_frame = UIFrameItem('function_buttons',
-                                             width=512,
-                                             height=168,
+                                             width=600,
+                                             height=150,
                                              tk_root=self.tk_food_function_frame)
         self.tk_function_frame.get_frame().pack(side=tk.BOTTOM)
         self.function_element_factory()
@@ -308,15 +309,15 @@ class TouchRegisterUI:
         clear_list_button = tk.Button(self.tk_function_frame.get_frame(),
                                       text='Löschen',
                                       font=('Arial', 20),
-                                      width=510,
-                                      height=3,
+                                      width=600,
+                                      height=1,
                                       command=self.clear_display_element_list)
 
         got_cash_button = tk.Button(self.tk_function_frame.get_frame(),
                                     text='Gegeben',
                                     font=('Arial', 20),
-                                    width=510,
-                                    height=3,
+                                    width=600,
+                                    height=1,
                                     command=self.got_cash)
         clear_list_button.pack()
         got_cash_button.pack()
@@ -377,24 +378,24 @@ class TouchRegisterUI:
         got_cash_reset_button = tk.Button(self.tk_function_frame.get_frame(),
                                           text='Reset',
                                           font=('Arial', 20),
-                                          width=510,
-                                          height=2,
+                                          width=600,
+                                          height=1,
                                           command=self.reset_cash_display)
         got_cash_reset_button.pack()
 
         got_cash_ok_button = tk.Button(self.tk_function_frame.get_frame(),
                                        text='Ok',
                                        font=('Arial', 20),
-                                       width=510,
-                                       height=2,
+                                       width=600,
+                                       height=1,
                                        command=lambda: self.got_cash_done(True))
         got_cash_ok_button.pack()
 
         got_cash_cancel_button = tk.Button(self.tk_function_frame.get_frame(),
                                            text='Abbrechen',
                                            font=('Arial', 20),
-                                           width=510,
-                                           height=2,
+                                           width=600,
+                                           height=1,
                                            command=lambda: self.got_cash_done(False))
         got_cash_cancel_button.pack()
 
