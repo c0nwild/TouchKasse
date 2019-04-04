@@ -67,15 +67,18 @@ class UIFrameItem:
     _pos = ''
     _child_elements = []
 
-    def __init__(self, name, width, height, pos=tk.TOP, tk_root=tk_root_base):
+    def __init__(self, name, width, height, tk_root, color='white', pos=tk.TOP):
         self._tk_master = tk_root
         self._name = name
         self._width = width
         self._height = height
         self._pos = pos
+        self._color = color
+
         self._frame = tk.Frame(self._tk_master,
                                width=self._width,
-                               height=self._height)
+                               height=self._height,
+                               bg=self._color)
 
     def get_frame(self) -> tk.Frame:
         """
@@ -97,7 +100,7 @@ class UIButtonItem:
 
     _name = ''
 
-    def __init__(self, name, _tk_root=tk_root_base):
+    def __init__(self, name, _tk_root):
         self._tk_master = _tk_root
         self._name = name
 
@@ -131,8 +134,8 @@ class FoodButtonItem(UIButtonItem):
     _tk_master = None
     _db_interface = DBAccess('touchReg.db', 'food_list')
 
-    def __init__(self, name, price, _tk_root=tk_root_base):
-        super(FoodButtonItem, self).__init__(name)
+    def __init__(self, name, price, _tk_root):
+        super(FoodButtonItem, self).__init__(name, _tk_root)
         self._tk_master = _tk_root
         self._price = price
 
@@ -169,8 +172,8 @@ class CashButtonItem(UIButtonItem):
     _tk_master = None
     #_db_interface = DBAccess('touchReg.db', 'cash_list')
 
-    def __init__(self, name, value, _tk_root=tk_root_base):
-        super(CashButtonItem, self).__init__(name)
+    def __init__(self, name, value, _tk_root):
+        super(CashButtonItem, self).__init__(name, _tk_root)
         self._tk_master = _tk_root
         self._value = value
 
@@ -195,7 +198,10 @@ class TouchRegisterUI:
 
     def __init__(self):
         """Main frame"""
-        self.tk_main_frame = UIFrameItem('main_frame', width=1200, height=800, tk_root=tk_root_base)
+        self.tk_main_frame = UIFrameItem('main_frame',
+                                         width=1200,
+                                         height=800,
+                                         tk_root=tk_root_base)
         self.tk_main_frame.get_frame().pack()
 
         """Display"""
@@ -247,6 +253,7 @@ class TouchRegisterUI:
         self.tk_food_frame = UIFrameItem('food_buttons',
                                          width=600,
                                          height=650,
+                                         color='red',
                                          tk_root=self.tk_food_function_frame)
         self.tk_food_frame.get_frame().pack_propagate(False)
         self.tk_food_frame.get_frame().pack(side=tk.TOP)
@@ -256,6 +263,7 @@ class TouchRegisterUI:
         self.tk_function_frame = UIFrameItem('function_buttons',
                                              width=600,
                                              height=150,
+                                             color='green',
                                              tk_root=self.tk_food_function_frame)
         self.tk_function_frame.get_frame().pack(side=tk.BOTTOM)
         self.function_element_factory()
@@ -309,18 +317,19 @@ class TouchRegisterUI:
         clear_list_button = tk.Button(self.tk_function_frame.get_frame(),
                                       text='Löschen',
                                       font=('Arial', 20),
-                                      width=600,
+                                      width=15,
                                       height=1,
                                       command=self.clear_display_element_list)
 
         got_cash_button = tk.Button(self.tk_function_frame.get_frame(),
                                     text='Gegeben',
                                     font=('Arial', 20),
-                                    width=600,
+                                    width=15,
                                     height=1,
                                     command=self.got_cash)
-        clear_list_button.pack()
-        got_cash_button.pack()
+
+        got_cash_button.pack(side=tk.LEFT)
+        clear_list_button.pack(side=tk.LEFT)
 
     def got_cash_button_factory(self):
         b_elem = []
@@ -375,29 +384,29 @@ class TouchRegisterUI:
 
         self.got_cash_button_factory()
 
-        got_cash_reset_button = tk.Button(self.tk_function_frame.get_frame(),
-                                          text='Reset',
-                                          font=('Arial', 20),
-                                          width=600,
-                                          height=1,
-                                          command=self.reset_cash_display)
-        got_cash_reset_button.pack()
-
         got_cash_ok_button = tk.Button(self.tk_function_frame.get_frame(),
                                        text='Ok',
                                        font=('Arial', 20),
-                                       width=600,
+                                       width=15,
                                        height=1,
                                        command=lambda: self.got_cash_done(True))
-        got_cash_ok_button.pack()
+        got_cash_ok_button.pack(side=tk.LEFT)
+
+        got_cash_reset_button = tk.Button(self.tk_function_frame.get_frame(),
+                                          text='Löschen',
+                                          font=('Arial', 20),
+                                          width=15,
+                                          height=1,
+                                          command=self.reset_cash_display)
+        got_cash_reset_button.pack(side=tk.LEFT)
 
         got_cash_cancel_button = tk.Button(self.tk_function_frame.get_frame(),
                                            text='Abbrechen',
                                            font=('Arial', 20),
-                                           width=600,
+                                           width=15,
                                            height=1,
                                            command=lambda: self.got_cash_done(False))
-        got_cash_cancel_button.pack()
+        got_cash_cancel_button.pack(side=tk.LEFT)
 
     def got_cash_done(self, is_transaction_done):
         self.tk_food_frame.clear()
