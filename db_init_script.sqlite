@@ -1,0 +1,5 @@
+insert into food_list (id,name,price,sold) values (1,'Knöchle mit Kraut & Brot',6.5,0);
+insert into food_list (id,name,price,sold) values (2,'Leberkäse m. Kartoffelsalat',5.0,0);
+insert into food_list (id,name,price,sold) values (3,'Leberkäsbrötchen',2.0,0);
+insert into food_list (id,name,price,sold) values (4,'Laugenstange, belegt',2.5,0);
+insert into food_list (id,name,price,sold) values (5,'Gerupftenbrot',1.5,0);
