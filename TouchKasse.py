@@ -1,6 +1,10 @@
 import sqlite3
 import tkinter as tk
 from abc import abstractmethod
+import cProfile
+import pstats
+import io
+
 
 tk_root_base = tk.Tk()
 tk_root_base.geometry('{}x{}'.format(1280, 800))
@@ -16,9 +20,20 @@ class DBAccess:
         self._db_conn = sqlite3.connect(self._db_name)
         self._cursor = self._db_conn.cursor()
 
-    def db_get(self, item_name=None):
-        if item_name is not None:
-            cmd = "SELECT * FROM {table_name} WHERE Name=='{name}'".format(
+    def db_get(self, item_name: str = '', value: str = '') -> list:
+        """
+        Get db entries by name of item
+        :param value: Specific value to query
+        :param item_name: Name of the db item to be queried
+        :return: List of all db entries belonging to the item
+        """
+        if value is '':
+            _val = '*'
+        else:
+            _val = value
+        if item_name is not '':
+            cmd = "SELECT {val} FROM {table_name} WHERE Name=='{name}'".format(
+                val=_val,
                 table_name=self._table_name,
                 name=item_name
             )
@@ -30,33 +45,35 @@ class DBAccess:
         db_content = self._cursor.fetchall()
         return db_content
 
-    def db_put(self, name, sold, price):
-        cmd = "INSERT INTO {table_name} (Name, Sold, Price) VALUES ({name}, {sold}, {price}".format(
-            table_name=self._table_name,
-            name=name,
-            sold=sold,
-            price=price
-        )
-        self._db_conn.execute(cmd)
-        self._db_conn.commit()
-
-    def db_update(self, name=None, sold=None, price=None):
+    def db_update_sold(self, item_name, sold=0):
+        """
+        Set db entry for sold items.
+        :param item_name: Name of the db item to be queried
+        :param sold: How many sold items
+        :return: Nothing
+        """
         cmd = "UPDATE {table_name} SET Sold={sold} WHERE Name='{name}'".format(
             table_name=self._table_name,
-            name=name,
             sold=sold,
-            price=price
+            name=item_name
+
         )
         self._db_conn.execute(cmd)
         self._db_conn.commit()
-
-    def db_get_name(self):
-        return self._db_name
 
 
 class UIFrameItem:
 
     def __init__(self, name, width, height, tk_root, pos='', color='white'):
+        """
+        Create tkinter frame object
+        :param name:
+        :param width:
+        :param height:
+        :param tk_root:
+        :param pos:
+        :param color:
+        """
         self._tk_master = tk_root
         self._name = name
         self._width = width
@@ -66,7 +83,11 @@ class UIFrameItem:
         self.make_frame()
         self._frame = self.make_frame()
 
-    def make_frame(self):
+    def make_frame(self) -> tk.Frame:
+        """
+        Generate tkinter frame object
+        :return: Tkinter frame object
+        """
         return tk.Frame(self._tk_master,
                         width=self._width,
                         height=self._height,
@@ -74,12 +95,16 @@ class UIFrameItem:
 
     def get_frame(self) -> tk.Frame:
         """
-
+        Get reference to frame object
         :return:tkinter frame object
         """
         return self._frame
 
     def clear(self):
+        """
+        Recreate frame object
+        :return: Nothing
+        """
         self._frame.destroy()
         self._frame = self.make_frame()
         self._frame.pack_propagate(False)
@@ -109,6 +134,10 @@ class UIButtonItem:
                          command=self.button_callback)
 
     def get_name(self):
+        """
+
+        :return:
+        """
         return self._name
 
     @abstractmethod
@@ -124,33 +153,37 @@ class FoodButtonItem(UIButtonItem):
         super(FoodButtonItem, self).__init__(name, _tk_root)
         self._tk_master = _tk_root
         self._price = price
-        self._sold = tk.IntVar()
+        self._sold = 0
 
     def button_callback(self):
-        _sold_local = self._sold.get()
-        self._sold.set(_sold_local + 1)
-        print("Set sold counter for {name} to {sold}".format(name=self._name, sold=_sold_local))
+        self.increment_sold()
+        print("Set sold counter for {name} to {sold}".format(name=self._name, sold=self._sold))
         if self._event_cb is not None:
             self._event_cb(self._name, self._price)
 
     def attach_external_callback(self, cb):
         self._event_cb = cb
 
+    @property
     def get_sold(self):
-        return self._sold.get()
+        """How many items are sold?"""
+        return self._sold
 
     def increment_sold(self):
-        pass
+        self._sold += 1
 
-    def db_get(self, item_name=None):
+    def reset_sold(self):
+        self._sold = 0
+
+    def db_get(self, item_name='', value=''):
         """
 
         :return: db items related to food item
         """
-        if item_name is None:
+        if item_name is '':
             item_name = self._name
 
-        return self._db_interface.db_get(item_name)
+        return self._db_interface.db_get(item_name, value)
 
 
 class CashButtonItem(UIButtonItem):
@@ -250,7 +283,7 @@ class TouchRegisterUI:
                                              tk_root=self.tk_food_function_frame)
         self.tk_function_frame.get_frame().pack_propagate(False)
         self.tk_function_frame.get_frame().pack()
-        self.function_element_factory()
+        self.food_function_element_factory()
 
     def food_element_factory(self):
         b_elem = []
@@ -262,19 +295,17 @@ class TouchRegisterUI:
             )
             obj: FoodButtonItem = eval(eval_str)
             obj.attach_external_callback(self.display_element_factory)
-            #b_elem.append(obj.generate_button())
             btn = obj.generate_button()
             btn.pack()
             b_elem.append(obj)
-
-        #for element in b_elem:
-        #    element.pack()
 
         return b_elem
 
     def display_element_factory(self, name, price):
         if self.transaction_done is True:
             self.reset_transaction()
+
+        self.got_cash_button.config(state='active')
 
         disp_obj = {
             'tk_name': tk.Label(self.tk_display_element_frame.get_frame(),
@@ -302,30 +333,21 @@ class TouchRegisterUI:
         self.display_elements.append(disp_obj)
         self.update_sum()
 
-    def function_element_factory(self):
-        clear_list_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                           width=215,
-                                           height=150)
-        clear_list_button = tk.Button(clear_list_button_frame,
-                                      text='Löschen',
-                                      font=('Arial', 20),
-                                      width=100,
-                                      height=100,
-                                      command=self.clear_display_element_list)
-
+    def food_function_element_factory(self):
         got_cash_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                           width=215,
-                                           height=150)
-        got_cash_button = tk.Button(got_cash_button_frame,
-                                    text='Gegeben',
-                                    font=('Arial', 20),
-                                    width=100,
-                                    height=100,
-                                    command=self.got_cash)
+                                         width=400,
+                                         height=150)
+        self.got_cash_button = tk.Button(got_cash_button_frame,
+                                         text='Gegeben',
+                                         font=('Arial', 20),
+                                         width=100,
+                                         height=100,
+                                         state='disabled',
+                                         command=self.got_cash)
 
         cancel_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                         width=210,
-                                         height=150)
+                                       width=240,
+                                       height=150)
         cancel_button = tk.Button(cancel_button_frame,
                                   text='Abbrechen',
                                   font=('Arial', 20),
@@ -335,12 +357,9 @@ class TouchRegisterUI:
 
         got_cash_button_frame.pack_propagate(False)
         got_cash_button_frame.pack(side=tk.LEFT)
-        clear_list_button_frame.pack_propagate(False)
-        clear_list_button_frame.pack(side=tk.LEFT)
         cancel_button_frame.pack_propagate(False)
         cancel_button_frame.pack(side=tk.LEFT)
-        got_cash_button.pack()
-        clear_list_button.pack()
+        self.got_cash_button.pack()
         cancel_button.pack()
 
     def cash_button_factory(self):
@@ -373,6 +392,46 @@ class TouchRegisterUI:
         for b in b_elem:
             b.pack()
 
+    def got_cash_function_element_factory(self):
+        got_cash_ok_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
+                                           width=215,
+                                           height=150)
+        got_cash_ok_button = tk.Button(got_cash_ok_button_frame,
+                                       text='Ok',
+                                       font=('Arial', 20),
+                                       width=100,
+                                       height=100,
+                                       command=lambda: self.end_transaction('ok'))
+
+        got_cash_reset_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
+                                           width=215,
+                                           height=150)
+        got_cash_reset_button = tk.Button(got_cash_reset_button_frame,
+                                          text='Löschen',
+                                          font=('Arial', 20),
+                                          width=100,
+                                          height=100,
+                                          command=self.reset_cash_display)
+
+        got_cash_cancel_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
+                                           width=210,
+                                           height=150)
+        got_cash_cancel_button = tk.Button(got_cash_cancel_button_frame,
+                                           text='Abbrechen',
+                                           font=('Arial', 20),
+                                           width=100,
+                                           height=100,
+                                           command=lambda: self.end_transaction('cancel'))
+        got_cash_ok_button_frame.pack_propagate(False)
+        got_cash_ok_button_frame.pack(side=tk.LEFT)
+        got_cash_reset_button_frame.pack_propagate(False)
+        got_cash_reset_button_frame.pack(side=tk.LEFT)
+        got_cash_cancel_button_frame.pack_propagate(False)
+        got_cash_cancel_button_frame.pack(side=tk.LEFT)
+        got_cash_ok_button.pack()
+        got_cash_reset_button.pack()
+        got_cash_cancel_button.pack()
+
     def cash_display(self, value):
         self.current_cash = self.current_cash + value
         self.tk_display_cash.config(
@@ -395,57 +454,11 @@ class TouchRegisterUI:
         self.tk_function_frame.clear()
 
         self.cash_button_factory()
+        self.reset_cash_display()
 
-        got_cash_ok_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                           width=215,
-                                           height=150)
-        got_cash_ok_button = tk.Button(got_cash_ok_button_frame,
-                                       text='Ok',
-                                       font=('Arial', 20),
-                                       width=100,
-                                       height=100,
-                                       command=lambda: self.end_transaction('ok'))
-
-
-        got_cash_reset_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                           width=215,
-                                           height=150)
-        got_cash_reset_button = tk.Button(got_cash_reset_button_frame,
-                                          text='Löschen',
-                                          font=('Arial', 20),
-                                          width=100,
-                                          height=100,
-                                          command=self.reset_cash_display)
-
-
-        got_cash_cancel_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                           width=210,
-                                           height=150)
-        got_cash_cancel_button = tk.Button(got_cash_cancel_button_frame,
-                                           text='Abbrechen',
-                                           font=('Arial', 20),
-                                           width=100,
-                                           height=100,
-                                           command=lambda: self.end_transaction('cancel'))
-        got_cash_ok_button_frame.pack_propagate(False)
-        got_cash_ok_button_frame.pack(side=tk.LEFT)
-        got_cash_reset_button_frame.pack_propagate(False)
-        got_cash_reset_button_frame.pack(side=tk.LEFT)
-        got_cash_cancel_button_frame.pack_propagate(False)
-        got_cash_cancel_button_frame.pack(side=tk.LEFT)
-        got_cash_ok_button.pack()
-        got_cash_reset_button.pack()
-        got_cash_cancel_button.pack()
-
+        self.got_cash_function_element_factory()
 
     def end_transaction(self, outcome):
-        self.tk_food_frame.clear()
-        self.tk_function_frame.clear()
-
-        self.food_element_factory()  # restore food buttons
-
-        self.function_element_factory()  # restore function buttons
-
         if outcome is 'ok':
             try:
                 self.close_transaction()
@@ -453,6 +466,13 @@ class TouchRegisterUI:
                 self.tk_display_cash.config(text="Zu wenig erhalten")
             else:
                 self.transaction_done = True
+            finally:
+                self.tk_food_frame.clear()
+                self.tk_function_frame.clear()
+
+                self.food_element_factory()  # restore food buttons
+
+                self.food_function_element_factory()  # restore function buttons
 
         elif outcome is 'cancel':
             self.reset_transaction()
@@ -470,9 +490,11 @@ class TouchRegisterUI:
         )
 
         for e in self.button_elements:
-            db_entry = e.db_get()
-            _sold = 0
-            self._db_interface.db_update(name=e.get_name(), sold=_sold)
+            db_entry = e.db_get(e.get_name(), 'Sold')
+            _sold = e.get_sold
+            e.reset_sold()
+            _sold = _sold + db_entry[0][0]
+            self._db_interface.db_update_sold(item_name=e.get_name(), sold=_sold)
 
     def reset_transaction(self):
         self.reset_cash_display()
@@ -491,5 +513,5 @@ class TouchRegisterUI:
 
 
 if __name__ == "__main__":
-    reg = TouchRegisterUI()
+    TouchRegisterUI()
     tk_root_base.mainloop()
