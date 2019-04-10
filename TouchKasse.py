@@ -496,7 +496,6 @@ class TouchRegisterUI:
                 self.close_transaction()
             except Exception:
                 self.tk_display_cash.config(text="Zu wenig erhalten")
-                raise Exception
             else:
                 self.transaction_done = True
             finally:
@@ -548,11 +547,16 @@ class TouchRegisterUI:
         self._db_interface.db_create_transaction_entry('tr_list', _transaction_log_str)
 
     def reset_transaction(self):
+        self.tk_food_frame.clear()
+        self.tk_function_frame.clear()
+        self.food_buttons = self.food_element_factory()
+        self.food_function_element_factory()
         self.reset_cash_display()
         self.current_cash = 0
         self.clear_display_element_list()
         self.update_sum()
         self.transaction_done = False
+        self.got_cash_button.config(state='disabled')
 
     def update_sum(self):
         _sum = 0
