@@ -1,5 +1,28 @@
-insert into food_list (id,name,price,sold) values (1,'Knöchle mit Kraut & Brot',6.5,0);
-insert into food_list (id,name,price,sold) values (2,'Leberkäse m. Kartoffelsalat',5.0,0);
-insert into food_list (id,name,price,sold) values (3,'Leberkäsbrötchen',2.0,0);
-insert into food_list (id,name,price,sold) values (4,'Laugenstange, belegt',2.5,0);
-insert into food_list (id,name,price,sold) values (5,'Gerupftenbrot',1.5,0);
+create table food_list (
+id integer primary key autoincrement,
+name txt not null,
+name_short not null,
+price float not null,
+sold integer not null
+);
+insert into food_list (id,name,name_short,price,sold) values (1,'Knöchle mit Kraut & Brot','KK',6.5,0);
+insert into food_list (id,name,name_short,price,sold) values (2,'Leberkäse m. Kartoffelsalat','LK',5.0,0);
+insert into food_list (id,name,name_short,price,sold) values (3,'Leberkäsbrötchen','LKW',2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (4,'Laugenstange, belegt','LSB',2.5,0);
+insert into food_list (id,name,name_short,price,sold) values (5,'Gerupftenbrot','GB',1.5,0);
+insert into food_list (id,name,name_short,price,sold) values (6,'Brötchen','B',0.5,0);
+insert into food_list (id,name,name_short,price,sold) values (7,'Laugenstange','LS',1,0);
+
+create table tr_list (
+tr_id integer primary key autoincrement,
+DATE txt not null,
+BILL float not null,
+CASH float not null,
+KK integer not null,
+LK integer not null,
+LKW integer not null,
+LSB integer not null,
+GB integer not null,
+B integer not null,
+LS integer not null
+)

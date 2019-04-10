@@ -1,9 +1,8 @@
 import sqlite3
 import tkinter as tk
 from abc import abstractmethod
-import cProfile
-import pstats
-import io
+import time
+from datetime import datetime
 
 
 tk_root_base = tk.Tk()
@@ -14,49 +13,78 @@ tk_root_base.wm_attributes('-fullscreen', 'true')
 
 class DBAccess:
 
-    def __init__(self, db_name, table_name):
+    def __init__(self, db_name):
         self._db_name = db_name
-        self._table_name = table_name
         self._db_conn = sqlite3.connect(self._db_name)
         self._cursor = self._db_conn.cursor()
+        self._tr_list_items = ''
 
-    def db_get(self, item_name: str = '', value: str = '') -> list:
+    def db_get(self, table_name, item_name: str = '', value: str = '*') -> list:
         """
         Get db entries by name of item
+        :param table_name: Name of the sqlite table
         :param value: Specific value to query
         :param item_name: Name of the db item to be queried
         :return: List of all db entries belonging to the item
         """
-        if value is '':
-            _val = '*'
-        else:
-            _val = value
+
         if item_name is not '':
-            cmd = "SELECT {val} FROM {table_name} WHERE Name=='{name}'".format(
-                val=_val,
-                table_name=self._table_name,
+            cmd = "SELECT ({val}) FROM {table_name} WHERE Name=='{name}'".format(
+                val=value,
+                table_name=table_name,
                 name=item_name
             )
         else:
-            cmd = "SELECT * FROM {table_name}".format(
-                table_name=self._table_name
+            cmd = "SELECT {val} FROM {table_name}".format(
+                val=value,
+                table_name=table_name
             )
         self._cursor.execute(cmd)
         db_content = self._cursor.fetchall()
         return db_content
 
-    def db_update_sold(self, item_name, sold=0):
+    def db_update_sold(self, table_name, item_name, sold=0):
         """
         Set db entry for sold items.
+        :param table_name: Name of the sqlite table
         :param item_name: Name of the db item to be queried
         :param sold: How many sold items
         :return: Nothing
         """
         cmd = "UPDATE {table_name} SET Sold={sold} WHERE Name='{name}'".format(
-            table_name=self._table_name,
+            table_name=table_name,
             sold=sold,
             name=item_name
 
+        )
+        self._db_conn.execute(cmd)
+        self._db_conn.commit()
+
+    def set_tr_list_items(self, tr_list_items: list):
+        """
+        From db.fetchall comes list of tuples. This function can process it and stores it
+        in string for the db access command to be used.
+        :param tr_list_items: List of tuples with shortnames for db items.
+        :return: zip
+        """
+        item_list = []
+        for item in tr_list_items:
+            item_list.append(item[0])
+        item_str = ','.join(item_list)
+
+        self._tr_list_items = item_str
+
+    def db_create_transaction_entry(self, table_name, value_str):
+        """
+        Create db entry
+        :param table_name: Name of the sqlite table
+        :param value_str: String of comma separated values to be inserted into db table.
+        :return: nothing
+        """
+        cmd = 'INSERT INTO {table_name} ({items}) VALUES ({values})'.format(
+            table_name=table_name,
+            items='date, bill, cash, ' + self._tr_list_items,
+            values=value_str
         )
         self._db_conn.execute(cmd)
         self._db_conn.commit()
@@ -147,7 +175,7 @@ class UIButtonItem:
 
 class FoodButtonItem(UIButtonItem):
 
-    _db_interface = DBAccess('touchReg.db', 'food_list')
+    _db_interface = DBAccess('touchReg.db')
 
     def __init__(self, name, price, _tk_root):
         super(FoodButtonItem, self).__init__(name, _tk_root)
@@ -183,7 +211,7 @@ class FoodButtonItem(UIButtonItem):
         if item_name is '':
             item_name = self._name
 
-        return self._db_interface.db_get(item_name, value)
+        return self._db_interface.db_get('food_list', item_name, value)
 
 
 class CashButtonItem(UIButtonItem):
@@ -204,12 +232,12 @@ class CashButtonItem(UIButtonItem):
 class TouchRegisterUI:
     """Main class for tkinter UI"""
 
-    button_elements = []
+    food_buttons = []
     display_elements = []
     total_cash = 0
     current_cash = 0
     current_sum = 0
-    _db_interface = DBAccess('touchReg.db', 'food_list')
+    _db_interface = DBAccess('touchReg.db')
     transaction_done = False
 
     def __init__(self):
@@ -273,7 +301,7 @@ class TouchRegisterUI:
                                          tk_root=self.tk_food_function_frame)
         self.tk_food_frame.get_frame().pack_propagate(False)
         self.tk_food_frame.get_frame().pack()
-        self.button_elements = self.food_element_factory()
+        self.food_buttons = self.food_element_factory()
 
         """Frame für Funktionstasten"""
         self.tk_function_frame = UIFrameItem('function_buttons',
@@ -285,9 +313,13 @@ class TouchRegisterUI:
         self.tk_function_frame.get_frame().pack()
         self.food_function_element_factory()
 
+        """prepare db access function for transfer list"""
+        tr_list_items = self._db_interface.db_get('food_list', value='name_short')
+        self._db_interface.set_tr_list_items(tr_list_items)
+
     def food_element_factory(self):
         b_elem = []
-        db_elements = self._db_interface.db_get()
+        db_elements = self._db_interface.db_get('food_list', value='*')
         for element in db_elements:
             eval_str = "FoodButtonItem('{name}', {price}, self.tk_food_frame.get_frame())".format(
                 name=element[1],
@@ -464,13 +496,14 @@ class TouchRegisterUI:
                 self.close_transaction()
             except Exception:
                 self.tk_display_cash.config(text="Zu wenig erhalten")
+                raise Exception
             else:
                 self.transaction_done = True
             finally:
                 self.tk_food_frame.clear()
                 self.tk_function_frame.clear()
 
-                self.food_element_factory()  # restore food buttons
+                self.food_buttons = self.food_element_factory()  # restore food buttons
 
                 self.food_function_element_factory()  # restore function buttons
 
@@ -478,6 +511,13 @@ class TouchRegisterUI:
             self.reset_transaction()
 
     def close_transaction(self):
+        """
+        Display return money and check in data in DB.
+        :return:
+        """
+        _transaction_log_items = list()
+        _transaction_log_str = ''
+
         _cash_back = self.current_cash - self.current_sum
 
         if _cash_back < 0:
@@ -489,12 +529,23 @@ class TouchRegisterUI:
             )
         )
 
-        for e in self.button_elements:
+        date = datetime.now()
+
+        _transaction_log_items.append('"' + date.ctime() + '"')
+        _transaction_log_items.append(str(self.current_sum))
+        _transaction_log_items.append(str(self.current_cash))
+
+        for e in self.food_buttons:
             db_entry = e.db_get(e.get_name(), 'Sold')
             _sold = e.get_sold
+            _transaction_log_items.append(str(_sold))
             e.reset_sold()
             _sold = _sold + db_entry[0][0]
-            self._db_interface.db_update_sold(item_name=e.get_name(), sold=_sold)
+            self._db_interface.db_update_sold('food_list', item_name=e.get_name(), sold=_sold)
+
+        _transaction_log_str = ','.join(_transaction_log_items)
+        print(_transaction_log_str)
+        self._db_interface.db_create_transaction_entry('tr_list', _transaction_log_str)
 
     def reset_transaction(self):
         self.reset_cash_display()
