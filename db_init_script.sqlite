@@ -10,8 +10,8 @@ insert into food_list (id,name,name_short,price,sold) values (2,'Leberkäse m. K
 insert into food_list (id,name,name_short,price,sold) values (3,'Leberkäsbrötchen','LKW',2.0,0);
 insert into food_list (id,name,name_short,price,sold) values (4,'Laugenstange, belegt','LSB',2.5,0);
 insert into food_list (id,name,name_short,price,sold) values (5,'Gerupftenbrot','GB',1.5,0);
-insert into food_list (id,name,name_short,price,sold) values (6,'Brötchen','B',0.5,0);
-insert into food_list (id,name,name_short,price,sold) values (7,'Scheibe Brot','SB',0.5,0);
+insert into food_list (id,name,name_short,price,sold) values (6,'Brötchen','B',0.3,0);
+insert into food_list (id,name,name_short,price,sold) values (7,'Scheibe Brot','SB',0.3,0);
 insert into food_list (id,name,name_short,price,sold) values (8,'Laugenstange','LS',1,0);
 
 create table tr_list (
