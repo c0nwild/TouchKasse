@@ -158,7 +158,7 @@ class UIButtonItem:
                          text=self._name,
                          font=('Arial', 20),
                          width=100,
-                         height=1,
+                         height=2,
                          command=self.button_callback)
 
     def get_name(self):
@@ -293,7 +293,7 @@ class TouchRegisterUI:
         self.tk_food_function_frame.pack_propagate(False)
         self.tk_food_function_frame.pack(side=tk.RIGHT)
 
-        """Frame für Essenstasten"""
+        """Frame für Essens-/Geldtasten"""
         self.tk_food_frame = UIFrameItem('food_buttons',
                                          width=640,
                                          height=650,
@@ -301,7 +301,7 @@ class TouchRegisterUI:
                                          tk_root=self.tk_food_function_frame)
         self.tk_food_frame.get_frame().pack_propagate(False)
         self.tk_food_frame.get_frame().pack()
-        self.food_buttons = self.food_element_factory()
+        self.food_buttons = self.food_button_factory()
 
         """Frame für Funktionstasten"""
         self.tk_function_frame = UIFrameItem('function_buttons',
@@ -317,7 +317,7 @@ class TouchRegisterUI:
         tr_list_items = self._db_interface.db_get('food_list', value='name_short')
         self._db_interface.set_tr_list_items(tr_list_items)
 
-    def food_element_factory(self):
+    def food_button_factory(self):
         b_elem = []
         db_elements = self._db_interface.db_get('food_list', value='*')
         for element in db_elements:
@@ -396,13 +396,15 @@ class TouchRegisterUI:
 
     def cash_button_factory(self):
         b_elem = []
-        cash_vals = {
+        cash_vals_cent = {
             '1 Cent': 0.01,
             '2 Cent': 0.02,
             '5 Cent': 0.05,
             '10 Cent': 0.1,
             '20 Cent': 0.2,
-            '50 Cent': 0.5,
+            '50 Cent': 0.5
+        }
+        cash_vals_euro = {
             '1 €': 1,
             '2 €': 2,
             '5 €': 5,
@@ -412,10 +414,35 @@ class TouchRegisterUI:
             '100 €': 100
         }
 
-        for val in cash_vals:
-            eval_str = "CashButtonItem('{name}', {value}, self.tk_food_frame.get_frame())".format(
+        tk_cent_button_frame = UIFrameItem('cent buttons',
+                                           height=650,
+                                           width=320,
+                                           tk_root=self.tk_food_frame.get_frame())
+
+        tk_euro_button_frame = UIFrameItem('euro buttons',
+                                           height=650,
+                                           width=320,
+                                           tk_root=self.tk_food_frame.get_frame())
+
+        tk_cent_button_frame.get_frame().pack_propagate(False)
+        tk_cent_button_frame.get_frame().pack(side=tk.LEFT)
+
+        tk_euro_button_frame.get_frame().pack_propagate(False)
+        tk_euro_button_frame.get_frame().pack(side=tk.LEFT)
+
+        for val in cash_vals_cent:
+            eval_str = "CashButtonItem('{name}', {value}, tk_cent_button_frame.get_frame())".format(
                 name=val,
-                value=cash_vals[val]
+                value=cash_vals_cent[val]
+            )
+            obj: CashButtonItem = eval(eval_str)
+            obj.attach_external_callback(self.cash_display)
+            b_elem.append(obj.generate_button())
+
+        for val in cash_vals_euro:
+            eval_str = "CashButtonItem('{name}', {value}, tk_euro_button_frame.get_frame())".format(
+                name=val,
+                value=cash_vals_euro[val]
             )
             obj: CashButtonItem = eval(eval_str)
             obj.attach_external_callback(self.cash_display)
@@ -501,9 +528,7 @@ class TouchRegisterUI:
             finally:
                 self.tk_food_frame.clear()
                 self.tk_function_frame.clear()
-
-                self.food_buttons = self.food_element_factory()  # restore food buttons
-
+                self.food_buttons = self.food_button_factory()  # restore food buttons
                 self.food_function_element_factory()  # restore function buttons
 
         elif outcome is 'cancel':
@@ -549,7 +574,7 @@ class TouchRegisterUI:
     def reset_transaction(self):
         self.tk_food_frame.clear()
         self.tk_function_frame.clear()
-        self.food_buttons = self.food_element_factory()
+        self.food_buttons = self.food_button_factory()  # restore food buttons
         self.food_function_element_factory()
         self.reset_cash_display()
         self.current_cash = 0
