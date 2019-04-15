@@ -190,24 +190,11 @@ class FoodButtonItem(UIButtonItem):
         self._sold = 0
 
     def button_callback(self):
-        self.increment_sold()
-        print("Set sold counter for {name} to {sold}".format(name=self._name, sold=self._sold))
         if self._event_cb is not None:
             self._event_cb(self._name, self._short_name, self._price)
 
     def attach_external_callback(self, cb):
         self._event_cb = cb
-
-    @property
-    def get_sold(self):
-        """How many items are sold?"""
-        return self._sold
-
-    def increment_sold(self):
-        self._sold += 1
-
-    def reset_sold(self):
-        self._sold = 0
 
 
 class CashButtonItem(UIButtonItem):
