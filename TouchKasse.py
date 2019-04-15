@@ -3,6 +3,7 @@ import tkinter as tk
 from abc import abstractmethod
 import time
 from datetime import datetime
+from collections import namedtuple, Counter, OrderedDict
 
 
 tk_root_base = tk.Tk()
@@ -17,7 +18,7 @@ class DBAccess:
         self._db_name = db_name
         self._db_conn = sqlite3.connect(self._db_name)
         self._cursor = self._db_conn.cursor()
-        self._tr_list_items = ''
+        self._tr_list_items = None
 
     def db_get(self, table_name, item_name: str = '', value: str = '*') -> list:
         """
@@ -29,7 +30,7 @@ class DBAccess:
         """
 
         if item_name is not '':
-            cmd = "SELECT ({val}) FROM {table_name} WHERE Name=='{name}'".format(
+            cmd = "SELECT ({val}) FROM {table_name} WHERE name_short=='{name}'".format(
                 val=value,
                 table_name=table_name,
                 name=item_name
@@ -43,7 +44,7 @@ class DBAccess:
         db_content = self._cursor.fetchall()
         return db_content
 
-    def db_update_sold(self, table_name, item_name, sold=0):
+    def db_update_sold(self, table_name, item_short_name, sold=0):
         """
         Set db entry for sold items.
         :param table_name: Name of the sqlite table
@@ -51,10 +52,10 @@ class DBAccess:
         :param sold: How many sold items
         :return: Nothing
         """
-        cmd = "UPDATE {table_name} SET Sold={sold} WHERE Name='{name}'".format(
+        cmd = "UPDATE {table_name} SET sold={sold} WHERE name_short='{name}'".format(
             table_name=table_name,
             sold=sold,
-            name=item_name
+            name=item_short_name
 
         )
         self._db_conn.execute(cmd)
@@ -70,9 +71,14 @@ class DBAccess:
         item_list = []
         for item in tr_list_items:
             item_list.append(item[0])
-        item_str = ','.join(item_list)
 
-        self._tr_list_items = item_str
+        self._tr_list_items = item_list
+
+    def get_tr_list_items(self):
+        """
+        :return: List of shortnames for those items that are stored in the transaction db
+        """
+        return self._tr_list_items
 
     def db_create_transaction_entry(self, table_name, value_str):
         """
@@ -83,7 +89,7 @@ class DBAccess:
         """
         cmd = 'INSERT INTO {table_name} ({items}) VALUES ({values})'.format(
             table_name=table_name,
-            items='date, bill, cash, ' + self._tr_list_items,
+            items='date, bill, cash, ' + ','.join(self._tr_list_items),
             values=value_str
         )
         self._db_conn.execute(cmd)
@@ -145,9 +151,11 @@ class UIFrameItem:
 
 class UIButtonItem:
 
-    def __init__(self, name, _tk_root):
+    def __init__(self, name, short_name, _tk_root):
         self._tk_master = _tk_root
         self._name = name
+        self._short_name = short_name
+        self._event_cb = None
 
     def generate_button(self) -> tk.Button:
         """
@@ -175,10 +183,8 @@ class UIButtonItem:
 
 class FoodButtonItem(UIButtonItem):
 
-    _db_interface = DBAccess('touchReg.db')
-
-    def __init__(self, name, price, _tk_root):
-        super(FoodButtonItem, self).__init__(name, _tk_root)
+    def __init__(self, name, short_name, price, _tk_root):
+        super(FoodButtonItem, self).__init__(name, short_name, _tk_root)
         self._tk_master = _tk_root
         self._price = price
         self._sold = 0
@@ -187,7 +193,7 @@ class FoodButtonItem(UIButtonItem):
         self.increment_sold()
         print("Set sold counter for {name} to {sold}".format(name=self._name, sold=self._sold))
         if self._event_cb is not None:
-            self._event_cb(self._name, self._price)
+            self._event_cb(self._name, self._short_name, self._price)
 
     def attach_external_callback(self, cb):
         self._event_cb = cb
@@ -203,21 +209,11 @@ class FoodButtonItem(UIButtonItem):
     def reset_sold(self):
         self._sold = 0
 
-    def db_get(self, item_name='', value=''):
-        """
-
-        :return: db items related to food item
-        """
-        if item_name is '':
-            item_name = self._name
-
-        return self._db_interface.db_get('food_list', item_name, value)
-
 
 class CashButtonItem(UIButtonItem):
 
     def __init__(self, name, value, _tk_root):
-        super(CashButtonItem, self).__init__(name, _tk_root)
+        super(CashButtonItem, self).__init__(name, '', _tk_root)
         self._tk_master = _tk_root
         self._value = value
 
@@ -232,15 +228,18 @@ class CashButtonItem(UIButtonItem):
 class TouchRegisterUI:
     """Main class for tkinter UI"""
 
-    food_buttons = []
     display_elements = []
+    button_shortnames = []
+    tr_counter = Counter()
     total_cash = 0
     current_cash = 0
     current_sum = 0
-    _db_interface = DBAccess('touchReg.db')
+    db_interface = DBAccess('touchReg.db')
     transaction_done = False
 
     def __init__(self):
+        self.db_elements = self.db_interface.db_get('food_list')
+
         """Main frame"""
         self.tk_main_frame = UIFrameItem('main_frame',
                                          width=1280,
@@ -314,26 +313,30 @@ class TouchRegisterUI:
         self.food_function_element_factory()
 
         """prepare db access function for transfer list"""
-        tr_list_items = self._db_interface.db_get('food_list', value='name_short')
-        self._db_interface.set_tr_list_items(tr_list_items)
+        tr_list_items = self.db_interface.db_get('food_list', value='name_short')
+        self.db_interface.set_tr_list_items(tr_list_items)
 
     def food_button_factory(self):
         b_elem = []
-        db_elements = self._db_interface.db_get('food_list', value='*')
-        for element in db_elements:
-            eval_str = "FoodButtonItem('{name}', {price}, self.tk_food_frame.get_frame())".format(
-                name=element[1],
-                price=element[3]
+        for element in self.db_elements:
+            """db entry: id|name|shortname|price|sold """
+            name = element[1]
+            short_name = element[2]
+            price = element[3]
+            eval_str = "FoodButtonItem('{name}', '{short_name}', {price}, self.tk_food_frame.get_frame())".format(
+                name=name,
+                short_name=short_name,
+                price=price
             )
             obj: FoodButtonItem = eval(eval_str)
             obj.attach_external_callback(self.display_element_factory)
             btn = obj.generate_button()
             btn.pack()
-            b_elem.append(obj)
+            b_elem.append(short_name)
 
         return b_elem
 
-    def display_element_factory(self, name, price):
+    def display_element_factory(self, name, short_name, price):
         if self.transaction_done is True:
             self.reset_transaction()
 
@@ -357,13 +360,14 @@ class TouchRegisterUI:
                                  padx=20
                                  ),
             'name': name,
+            'short_name': short_name,
             'price': price
         }
         disp_obj['tk_name'].pack()
         disp_obj['tk_price'].pack()
 
         self.display_elements.append(disp_obj)
-        self.update_sum()
+        self.tr_counter = self.update_sum()
 
     def food_function_element_factory(self):
         got_cash_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
@@ -453,8 +457,8 @@ class TouchRegisterUI:
 
     def got_cash_function_element_factory(self):
         got_cash_ok_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                           width=215,
-                                           height=150)
+                                            width=215,
+                                            height=150)
         got_cash_ok_button = tk.Button(got_cash_ok_button_frame,
                                        text='Ok',
                                        font=('Arial', 20),
@@ -463,8 +467,8 @@ class TouchRegisterUI:
                                        command=lambda: self.end_transaction('ok'))
 
         got_cash_reset_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                           width=215,
-                                           height=150)
+                                               width=215,
+                                               height=150)
         got_cash_reset_button = tk.Button(got_cash_reset_button_frame,
                                           text='Löschen',
                                           font=('Arial', 20),
@@ -473,8 +477,8 @@ class TouchRegisterUI:
                                           command=self.reset_cash_display)
 
         got_cash_cancel_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                           width=210,
-                                           height=150)
+                                                width=210,
+                                                height=150)
         got_cash_cancel_button = tk.Button(got_cash_cancel_button_frame,
                                            text='Abbrechen',
                                            font=('Arial', 20),
@@ -523,6 +527,7 @@ class TouchRegisterUI:
                 self.close_transaction()
             except Exception:
                 self.tk_display_cash.config(text="Zu wenig erhalten")
+                raise Exception
             else:
                 self.transaction_done = True
             finally:
@@ -539,12 +544,13 @@ class TouchRegisterUI:
         Display return money and check in data in DB.
         :return:
         """
-        _transaction_log_items = list()
-        _transaction_log_str = ''
+        transaction_log_items = list()
+        item_short_names = self.db_interface.get_tr_list_items()
+        item_dict = OrderedDict([(i, 0) for i in item_short_names])
 
-        _cash_back = self.current_cash - self.current_sum
+        cash_back = self.current_cash - self.current_sum
 
-        if _cash_back < 0:
+        if cash_back < 0:
             raise Exception
 
         self.tk_display_cash.config(
@@ -555,21 +561,22 @@ class TouchRegisterUI:
 
         date = datetime.now()
 
-        _transaction_log_items.append('"' + date.ctime() + '"')
-        _transaction_log_items.append(str(self.current_sum))
-        _transaction_log_items.append(str(self.current_cash))
+        transaction_log_items.append('"' + date.ctime() + '"')
+        transaction_log_items.append(str(self.current_sum))
+        transaction_log_items.append(str(self.current_cash))
 
-        for e in self.food_buttons:
-            db_entry = e.db_get(e.get_name(), 'Sold')
-            _sold = e.get_sold
-            _transaction_log_items.append(str(_sold))
-            e.reset_sold()
-            _sold = _sold + db_entry[0][0]
-            self._db_interface.db_update_sold('food_list', item_name=e.get_name(), sold=_sold)
+        for short_name in self.tr_counter:
+            sold = self.tr_counter[short_name]
+            item_dict[short_name] = sold
+            sold_cumul = sold + self.db_interface.db_get('food_list', item_name=short_name, value='sold')[0][0]
+            self.db_interface.db_update_sold('food_list', item_short_name=short_name, sold=sold_cumul)
 
-        _transaction_log_str = ','.join(_transaction_log_items)
-        print(_transaction_log_str)
-        self._db_interface.db_create_transaction_entry('tr_list', _transaction_log_str)
+        for key in item_dict.keys():
+            transaction_log_items.append(str(item_dict[key]))
+
+        transaction_log_str = ','.join(transaction_log_items)
+        print(transaction_log_str)
+        self.db_interface.db_create_transaction_entry('tr_list', transaction_log_str)
 
     def reset_transaction(self):
         self.tk_food_frame.clear()
@@ -584,12 +591,15 @@ class TouchRegisterUI:
         self.got_cash_button.config(state='disabled')
 
     def update_sum(self):
+        cnt = Counter()
         _sum = 0
         for e in self.display_elements:
             _sum = _sum + e['price']
+            cnt[e['short_name']] += 1
         txt = "SUMME: {sum:.02f}€".format(sum=_sum)
         self.tk_display_sum.config(text=txt)
         self.current_sum = _sum
+        return cnt
 
 
 if __name__ == "__main__":
