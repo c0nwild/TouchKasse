@@ -166,7 +166,7 @@ class UIButtonItem:
                          text=self._name,
                          font=('Arial', 20),
                          width=100,
-                         height=2,
+                         height=1,
                          command=self.button_callback)
 
     def get_name(self):
@@ -211,6 +211,100 @@ class CashButtonItem(UIButtonItem):
     def attach_external_callback(self, cb):
         self._event_cb = cb
 
+    def generate_button(self) -> tk.Button:
+        """
+
+        :return:tkinter button object
+        """
+        return tk.Button(self._tk_master,
+                         text=self._name,
+                         font=('Arial', 20),
+                         width=100,
+                         height=2,
+                         command=self.button_callback)
+
+
+class CashPad:
+
+    def __init__(self, tk_root_frame: UIFrameItem, tk_value_display: tk.Label = None):
+        self._value = 0
+        self._tk_root_frame = tk_root_frame
+        self._tk_value_display = tk_value_display
+        self.cash_button_factory()
+
+    def cash_button_factory(self):
+        b_elem = []
+        cash_vals_cent = {
+            '1 Cent': 0.01,
+            '2 Cent': 0.02,
+            '5 Cent': 0.05,
+            '10 Cent': 0.1,
+            '20 Cent': 0.2,
+            '50 Cent': 0.5
+        }
+        cash_vals_euro = {
+            '1 €': 1,
+            '2 €': 2,
+            '5 €': 5,
+            '10 €': 10,
+            '20 €': 20,
+            '50 €': 50,
+            '100 €': 100
+        }
+
+        tk_cent_button_frame = UIFrameItem('cent buttons',
+                                           height=650,
+                                           width=320,
+                                           tk_root=self._tk_root_frame.get_frame())
+
+        tk_euro_button_frame = UIFrameItem('euro buttons',
+                                           height=650,
+                                           width=320,
+                                           tk_root=self._tk_root_frame.get_frame())
+
+        tk_cent_button_frame.get_frame().pack_propagate(False)
+        tk_cent_button_frame.get_frame().pack(side=tk.LEFT)
+
+        tk_euro_button_frame.get_frame().pack_propagate(False)
+        tk_euro_button_frame.get_frame().pack(side=tk.LEFT)
+
+        for val in cash_vals_cent:
+            eval_str = "CashButtonItem('{name}', {value}, tk_cent_button_frame.get_frame())".format(
+                name=val,
+                value=cash_vals_cent[val]
+            )
+            obj: CashButtonItem = eval(eval_str)
+            obj.attach_external_callback(self.update_value)
+            b_elem.append(obj.generate_button())
+
+        for val in cash_vals_euro:
+            eval_str = "CashButtonItem('{name}', {value}, tk_euro_button_frame.get_frame())".format(
+                name=val,
+                value=cash_vals_euro[val]
+            )
+            obj: CashButtonItem = eval(eval_str)
+            obj.attach_external_callback(self.update_value)
+            b_elem.append(obj.generate_button())
+
+        for b in b_elem:
+            b.pack()
+
+    def update_value(self, value):
+        self._value += value
+        if self._tk_value_display is not None:
+            self._tk_value_display.config(
+                text="BAR: {cash:.02f} €".format(
+                    cash=self._value
+                )
+            )
+
+    def get_value(self):
+        return self._value
+
+    def reset_value(self):
+        self._value = 0
+        self.update_value(0)
+
 
 class TouchRegisterUI:
     """Main class for tkinter UI"""
@@ -223,6 +317,7 @@ class TouchRegisterUI:
     current_sum = 0
     db_interface = DBAccess('touchReg.db')
     transaction_done = False
+    cash_pad: CashPad = None
 
     def __init__(self):
         self.db_elements = self.db_interface.db_get('food_list')
@@ -385,63 +480,6 @@ class TouchRegisterUI:
         self.got_cash_button.pack()
         cancel_button.pack()
 
-    def cash_button_factory(self):
-        b_elem = []
-        cash_vals_cent = {
-            '1 Cent': 0.01,
-            '2 Cent': 0.02,
-            '5 Cent': 0.05,
-            '10 Cent': 0.1,
-            '20 Cent': 0.2,
-            '50 Cent': 0.5
-        }
-        cash_vals_euro = {
-            '1 €': 1,
-            '2 €': 2,
-            '5 €': 5,
-            '10 €': 10,
-            '20 €': 20,
-            '50 €': 50,
-            '100 €': 100
-        }
-
-        tk_cent_button_frame = UIFrameItem('cent buttons',
-                                           height=650,
-                                           width=320,
-                                           tk_root=self.tk_food_frame.get_frame())
-
-        tk_euro_button_frame = UIFrameItem('euro buttons',
-                                           height=650,
-                                           width=320,
-                                           tk_root=self.tk_food_frame.get_frame())
-
-        tk_cent_button_frame.get_frame().pack_propagate(False)
-        tk_cent_button_frame.get_frame().pack(side=tk.LEFT)
-
-        tk_euro_button_frame.get_frame().pack_propagate(False)
-        tk_euro_button_frame.get_frame().pack(side=tk.LEFT)
-
-        for val in cash_vals_cent:
-            eval_str = "CashButtonItem('{name}', {value}, tk_cent_button_frame.get_frame())".format(
-                name=val,
-                value=cash_vals_cent[val]
-            )
-            obj: CashButtonItem = eval(eval_str)
-            obj.attach_external_callback(self.cash_display)
-            b_elem.append(obj.generate_button())
-
-        for val in cash_vals_euro:
-            eval_str = "CashButtonItem('{name}', {value}, tk_euro_button_frame.get_frame())".format(
-                name=val,
-                value=cash_vals_euro[val]
-            )
-            obj: CashButtonItem = eval(eval_str)
-            obj.attach_external_callback(self.cash_display)
-            b_elem.append(obj.generate_button())
-
-        for b in b_elem:
-            b.pack()
-
     def got_cash_function_element_factory(self):
         got_cash_ok_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
                                             width=215,
@@ -461,7 +499,7 @@ class TouchRegisterUI:
                                           font=('Arial', 20),
                                           width=100,
                                           height=100,
-                                          command=self.reset_cash_display)
+                                          command=self.cash_pad.reset_value)
 
         got_cash_cancel_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
                                                 width=210,
@@ -482,18 +520,6 @@ class TouchRegisterUI:
         got_cash_reset_button.pack()
         got_cash_cancel_button.pack()
 
-    def cash_display(self, value):
-        self.current_cash = self.current_cash + value
-        self.tk_display_cash.config(
-            text="BAR: {cash:.02f} €".format(
-                cash=self.current_cash
-            )
-        )
-
-    def reset_cash_display(self):
-        self.current_cash = 0
-        self.cash_display(0)
-
     def clear_display_element_list(self):
         self.tk_display_element_frame.clear()
         self.display_elements.clear()
@@ -503,8 +529,7 @@ class TouchRegisterUI:
         self.tk_food_frame.clear()
         self.tk_function_frame.clear()
 
-        self.cash_button_factory()
-        self.reset_cash_display()
+        self.cash_pad = CashPad(self.tk_food_frame, self.tk_display_cash)
 
         self.got_cash_function_element_factory()
 
@@ -535,14 +560,14 @@ class TouchRegisterUI:
         item_short_names = self.db_interface.get_tr_list_items()
         item_dict = OrderedDict([(i, 0) for i in item_short_names])
 
-        cash_back = self.current_cash - self.current_sum
+        cash_back = self.cash_pad.get_value() - self.current_sum
 
         if cash_back < 0:
             raise Exception
 
         self.tk_display_cash.config(
             text="ZURÜCK: {cash:.02f} €".format(
-                cash=self.current_cash - self.current_sum
+                cash=cash_back
             )
         )
 
@@ -550,7 +575,7 @@ class TouchRegisterUI:
 
         transaction_log_items.append('"' + date.ctime() + '"')
         transaction_log_items.append(str(self.current_sum))
-        transaction_log_items.append(str(self.current_cash))
+        transaction_log_items.append(str(self.cash_pad.get_value()))
 
         for short_name in self.tr_counter:
             sold = self.tr_counter[short_name]
@@ -570,8 +595,7 @@ class TouchRegisterUI:
         self.tk_function_frame.clear()
         self.food_buttons = self.food_button_factory()  # restore food buttons
         self.food_function_element_factory()
-        self.reset_cash_display()
-        self.current_cash = 0
+        self.cash_pad.reset_value()
         self.clear_display_element_list()
         self.update_sum()
         self.transaction_done = False
