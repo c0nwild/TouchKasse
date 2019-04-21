@@ -48,7 +48,7 @@ class DBAccess:
         """
         Set db entry for sold items.
         :param table_name: Name of the sqlite table
-        :param item_name: Name of the db item to be queried
+        :param item_short_name: Short name of the db item to be queried
         :param sold: How many sold items
         :return: Nothing
         """
@@ -65,7 +65,7 @@ class DBAccess:
         """
         From db.fetchall comes list of tuples. This function can process it and stores it
         in string for the db access command to be used.
-        :param tr_list_items: List of tuples with shortnames for db items.
+        :param tr_list_items: List of tuples with short names for db items.
         :return: zip
         """
         item_list = []
@@ -76,7 +76,7 @@ class DBAccess:
 
     def get_tr_list_items(self):
         """
-        :return: List of shortnames for those items that are stored in the transaction db
+        :return: List of short names for those items that are stored in the transaction db
         """
         return self._tr_list_items
 
@@ -234,7 +234,7 @@ class CashPad:
 
     def cash_button_factory(self):
         b_elem = []
-        cash_vals_cent = {
+        cash_values_cent = {
             '1 Cent': 0.01,
             '2 Cent': 0.02,
             '5 Cent': 0.05,
@@ -242,7 +242,7 @@ class CashPad:
             '20 Cent': 0.2,
             '50 Cent': 0.5
         }
-        cash_vals_euro = {
+        cash_values_euro = {
             '1 €': 1,
             '2 €': 2,
             '5 €': 5,
@@ -268,19 +268,19 @@ class CashPad:
         tk_euro_button_frame.get_frame().pack_propagate(False)
         tk_euro_button_frame.get_frame().pack(side=tk.LEFT)
 
-        for val in cash_vals_cent:
+        for val in cash_values_cent:
             eval_str = "CashButtonItem('{name}', {value}, tk_cent_button_frame.get_frame())".format(
                 name=val,
-                value=cash_vals_cent[val]
+                value=cash_values_cent[val]
             )
             obj: CashButtonItem = eval(eval_str)
             obj.attach_external_callback(self.update_value)
             b_elem.append(obj.generate_button())
 
-        for val in cash_vals_euro:
+        for val in cash_values_euro:
             eval_str = "CashButtonItem('{name}', {value}, tk_euro_button_frame.get_frame())".format(
                 name=val,
-                value=cash_vals_euro[val]
+                value=cash_values_euro[val]
             )
             obj: CashButtonItem = eval(eval_str)
             obj.attach_external_callback(self.update_value)
