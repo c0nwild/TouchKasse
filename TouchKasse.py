@@ -29,7 +29,7 @@ class DBAccess:
         :return: List of all db entries belonging to the item
         """
 
-        if item_name is not '':
+        if item_name != '':
             cmd = "SELECT ({val}) FROM {table_name} WHERE name_short=='{name}'".format(
                 val=value,
                 table_name=table_name,
@@ -143,7 +143,7 @@ class UIFrameItem:
         self._frame = self.make_frame()
         self._frame.pack_propagate(False)
 
-        if self._pos is not '':
+        if self._pos != '':
             self._frame.pack(side=self._pos)
         else:
             self._frame.pack()
@@ -534,7 +534,7 @@ class TouchRegisterUI:
         self.got_cash_function_element_factory()
 
     def end_transaction(self, outcome):
-        if outcome is 'ok':
+        if outcome == 'ok':
             try:
                 self.close_transaction()
             except Exception:
@@ -548,7 +548,7 @@ class TouchRegisterUI:
                 self.food_buttons = self.food_button_factory()  # restore food buttons
                 self.food_function_element_factory()  # restore function buttons
 
-        elif outcome is 'cancel':
+        elif outcome == 'cancel':
             self.reset_transaction()
 
     def close_transaction(self):
