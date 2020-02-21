@@ -595,7 +595,8 @@ class TouchRegisterUI:
         self.tk_function_frame.clear()
         self.food_buttons = self.food_button_factory()  # restore food buttons
         self.food_function_element_factory()
-        self.cash_pad.reset_value()
+        if self.cash_pad is not None:
+            self.cash_pad.reset_value()
         self.clear_display_element_list()
         self.update_sum()
         self.transaction_done = False
