@@ -5,7 +5,6 @@ import time
 from datetime import datetime
 from collections import namedtuple, Counter, OrderedDict
 
-
 tk_root_base = tk.Tk()
 tk_root_base.geometry('{}x{}'.format(1280, 800))
 tk_root_base.resizable(width=False, height=False)
@@ -227,7 +226,7 @@ class CashButtonItem(UIButtonItem):
 class CashPad:
 
     def __init__(self, tk_root_frame: UIFrameItem, tk_value_display: tk.Label = None):
-        self._value = 0
+        self._value = 0.0
         self._tk_root_frame = tk_root_frame
         self._tk_value_display = tk_value_display
         self.cash_button_factory()
@@ -422,7 +421,7 @@ class TouchRegisterUI:
         if self.transaction_done is True:
             self.reset_transaction()
 
-        self.got_cash_button.config(state='active')
+        #self.got_cash_button.config(state='active')
 
         disp_obj = {
             'tk_name': tk.Label(self.tk_display_element_frame.get_frame(),
@@ -453,18 +452,17 @@ class TouchRegisterUI:
 
     def food_function_element_factory(self):
         got_cash_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                         width=400,
+                                         width=300,
                                          height=150)
         self.got_cash_button = tk.Button(got_cash_button_frame,
                                          text='Gegeben',
                                          font=('Arial', 20),
                                          width=100,
                                          height=100,
-                                         state='disabled',
                                          command=self.got_cash)
 
         cancel_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                       width=240,
+                                       width=170,
                                        height=150)
         cancel_button = tk.Button(cancel_button_frame,
                                   text='Abbrechen',
@@ -473,11 +471,24 @@ class TouchRegisterUI:
                                   height=100,
                                   command=lambda: self.end_transaction('cancel'))
 
+        custom_price_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
+                                             width=170,
+                                             height=150)
+        self.custom_price_button = tk.Button(custom_price_button_frame,
+                                             text='Betrag',
+                                             font=('Arial', 20),
+                                             width=100,
+                                             height=100,
+                                             command=self.custom_price)
+
         got_cash_button_frame.pack_propagate(False)
         got_cash_button_frame.pack(side=tk.LEFT)
         cancel_button_frame.pack_propagate(False)
         cancel_button_frame.pack(side=tk.LEFT)
+        custom_price_button_frame.pack_propagate(False)
+        custom_price_button_frame.pack(side=tk.LEFT)
         self.got_cash_button.pack()
+        self.custom_price_button.pack()
         cancel_button.pack()
 
     def got_cash_function_element_factory(self):
@@ -510,6 +521,7 @@ class TouchRegisterUI:
                                            width=100,
                                            height=100,
                                            command=lambda: self.end_transaction('cancel'))
+
         got_cash_ok_button_frame.pack_propagate(False)
         got_cash_ok_button_frame.pack(side=tk.LEFT)
         got_cash_reset_button_frame.pack_propagate(False)
@@ -519,6 +531,48 @@ class TouchRegisterUI:
         got_cash_ok_button.pack()
         got_cash_reset_button.pack()
         got_cash_cancel_button.pack()
+
+    def custom_price_function_element_factory(self):
+        custom_price_ok_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
+                                                width=215,
+                                                height=150)
+        custom_price_ok_button = tk.Button(custom_price_ok_button_frame,
+                                           text='Ok',
+                                           font=('Arial', 20),
+                                           width=100,
+                                           height=100,
+                                           command=lambda: self.end_transaction('custom price')
+                                           )
+
+        custom_price_reset_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
+                                                   width=215,
+                                                   height=150)
+        custom_price_reset_button = tk.Button(custom_price_reset_button_frame,
+                                              text='Löschen',
+                                              font=('Arial', 20),
+                                              width=100,
+                                              height=100,
+                                              command=self.cash_pad.reset_value)
+
+        custom_price_cancel_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
+                                                    width=210,
+                                                    height=150)
+        custom_price_cancel_button = tk.Button(custom_price_cancel_button_frame,
+                                               text='Abbrechen',
+                                               font=('Arial', 20),
+                                               width=100,
+                                               height=100,
+                                               command=lambda: self.end_transaction('cancel'))
+
+        custom_price_ok_button_frame.pack_propagate(False)
+        custom_price_ok_button_frame.pack(side=tk.LEFT)
+        custom_price_reset_button_frame.pack_propagate(False)
+        custom_price_reset_button_frame.pack(side=tk.LEFT)
+        custom_price_cancel_button_frame.pack_propagate(False)
+        custom_price_cancel_button_frame.pack(side=tk.LEFT)
+        custom_price_ok_button.pack()
+        custom_price_reset_button.pack()
+        custom_price_cancel_button.pack()
 
     def clear_display_element_list(self):
         self.tk_display_element_frame.clear()
@@ -532,6 +586,14 @@ class TouchRegisterUI:
         self.cash_pad = CashPad(self.tk_food_frame, self.tk_display_cash)
 
         self.got_cash_function_element_factory()
+
+    def custom_price(self):
+        self.tk_food_frame.clear()
+        self.tk_function_frame.clear()
+
+        self.cash_pad = CashPad(self.tk_food_frame, self.tk_display_cash)
+
+        self.custom_price_function_element_factory()
 
     def end_transaction(self, outcome):
         if outcome == 'ok':
@@ -547,6 +609,13 @@ class TouchRegisterUI:
                 self.tk_function_frame.clear()
                 self.food_buttons = self.food_button_factory()  # restore food buttons
                 self.food_function_element_factory()  # restore function buttons
+
+        elif outcome == 'custom price':
+            self.display_element_factory('Eigener Betrag', 'EB', self.cash_pad.get_value())
+            self.tk_food_frame.clear()
+            self.tk_function_frame.clear()
+            self.food_buttons = self.food_button_factory()  # restore food buttons
+            self.food_function_element_factory()  # restore function buttons
 
         elif outcome == 'cancel':
             self.reset_transaction()
@@ -600,7 +669,7 @@ class TouchRegisterUI:
         self.clear_display_element_list()
         self.update_sum()
         self.transaction_done = False
-        self.got_cash_button.config(state='disabled')
+        # self.got_cash_button.config(state='disabled')
 
     def update_sum(self):
         cnt = Counter()
