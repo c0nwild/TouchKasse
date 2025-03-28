@@ -13,7 +13,9 @@ insert into food_list (id,name,name_short,price,sold) values (5,'Gerupftenbrot',
 insert into food_list (id,name,name_short,price,sold) values (6,'Brötchen','B',0.3,0);
 insert into food_list (id,name,name_short,price,sold) values (7,'Scheibe Brot','SB',0.3,0);
 insert into food_list (id,name,name_short,price,sold) values (8,'Laugenstange','LS',1,0);
-insert into food_list (id,name,name_short,price,sold) values (9,'Sonstiges','EB',0,0);
+insert into food_list (id,name,name_short,price,sold) values (9,'','EB',0,0);
+insert into food_list (id,name,name_short,price,sold) values (10,'Pfand, Krug','PFK',-1.0,0);
+insert into food_list (id,name,name_short,price,sold) values (11,'Pfand, Weinglas','PFWG',-2.0,0);
 
 create table tr_list (
 tr_id integer primary key autoincrement,
@@ -28,5 +30,7 @@ GB integer not null,
 B integer not null,
 SB integer not null,
 LS integer not null,
-EB integer not null
+EB integer not null,
+PFK integer not null,
+PFWG integer not null
 )

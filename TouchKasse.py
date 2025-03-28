@@ -311,9 +311,9 @@ class TouchRegisterUI:
     display_elements = []
     button_shortnames = []
     tr_counter = Counter()
-    total_cash = 0
-    current_cash = 0
-    current_sum = 0
+    total_cash = 0.0
+    current_cash = 0.0
+    current_sum = 0.0
     db_interface = DBAccess('touchReg.db')
     transaction_done = False
     cash_pad: CashPad = None
@@ -404,16 +404,17 @@ class TouchRegisterUI:
             name = element[1]
             short_name = element[2]
             price = element[3]
-            eval_str = "FoodButtonItem('{name}', '{short_name}', {price}, self.tk_food_frame.get_frame())".format(
-                name=name,
-                short_name=short_name,
-                price=price
-            )
-            obj: FoodButtonItem = eval(eval_str)
-            obj.attach_external_callback(self.display_element_factory)
-            btn = obj.generate_button()
-            btn.pack()
-            b_elem.append(short_name)
+            if name != '':
+                eval_str = "FoodButtonItem('{name}', '{short_name}', {price}, self.tk_food_frame.get_frame())".format(
+                    name=name,
+                    short_name=short_name,
+                    price=price
+                )
+                obj: FoodButtonItem = eval(eval_str)
+                obj.attach_external_callback(self.display_element_factory)
+                btn = obj.generate_button()
+                btn.pack()
+                b_elem.append(short_name)
 
         return b_elem
 
@@ -643,7 +644,7 @@ class TouchRegisterUI:
         date = datetime.now()
 
         transaction_log_items.append('"' + date.ctime() + '"')
-        transaction_log_items.append(str(self.current_sum))
+        transaction_log_items.append(str(round(self.current_sum, 2)))
         transaction_log_items.append(str(self.cash_pad.get_value()))
 
         for short_name in self.tr_counter:
@@ -673,7 +674,7 @@ class TouchRegisterUI:
 
     def update_sum(self):
         cnt = Counter()
-        _sum = 0
+        _sum = 0.0
         for e in self.display_elements:
             _sum = _sum + e['price']
             cnt[e['short_name']] += 1
