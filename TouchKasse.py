@@ -27,21 +27,19 @@ class DBAccess:
         :param item_name: Name of the db item to be queried
         :return: List of all db entries belonging to the item
         """
-
         if item_name != '':
-            cmd = "SELECT ({val}) FROM {table_name} WHERE name_short=='{name}'".format(
+            cmd = "SELECT ({val}) FROM {table_name} WHERE name_short=?".format(
                 val=value,
-                table_name=table_name,
-                name=item_name
+                table_name=table_name
             )
+            self._cursor.execute(cmd, (item_name,))
         else:
             cmd = "SELECT {val} FROM {table_name}".format(
                 val=value,
                 table_name=table_name
             )
-        self._cursor.execute(cmd)
-        db_content = self._cursor.fetchall()
-        return db_content
+            self._cursor.execute(cmd)
+        return self._cursor.fetchall()
 
     def db_update_sold(self, table_name, item_short_name, sold=0):
         """
@@ -51,13 +49,10 @@ class DBAccess:
         :param sold: How many sold items
         :return: Nothing
         """
-        cmd = "UPDATE {table_name} SET sold={sold} WHERE name_short='{name}'".format(
-            table_name=table_name,
-            sold=sold,
-            name=item_short_name
-
+        cmd = "UPDATE {table_name} SET sold=? WHERE name_short=?".format(
+            table_name=table_name
         )
-        self._db_conn.execute(cmd)
+        self._db_conn.execute(cmd, (sold, item_short_name))
         self._db_conn.commit()
 
     def set_tr_list_items(self, tr_list_items: list):
@@ -79,19 +74,21 @@ class DBAccess:
         """
         return self._tr_list_items
 
-    def db_create_transaction_entry(self, table_name, value_str):
+    def db_create_transaction_entry(self, table_name, values: list):
         """
         Create db entry
         :param table_name: Name of the sqlite table
-        :param value_str: String of comma separated values to be inserted into db table.
+        :param values: List of values to be inserted into db table.
         :return: nothing
         """
-        cmd = 'INSERT INTO {table_name} ({items}) VALUES ({values})'.format(
+        items = 'date, bill, cash, ' + ','.join(self._tr_list_items)
+        placeholders = ','.join(['?'] * len(values))
+        cmd = 'INSERT INTO {table_name} ({items}) VALUES ({placeholders})'.format(
             table_name=table_name,
-            items='date, bill, cash, ' + ','.join(self._tr_list_items),
-            values=value_str
+            items=items,
+            placeholders=placeholders
         )
-        self._db_conn.execute(cmd)
+        self._db_conn.execute(cmd, values)
         self._db_conn.commit()
 
 
@@ -113,7 +110,6 @@ class UIFrameItem:
         self._height = height
         self._pos = pos
         self._color = color
-        self.make_frame()
         self._frame = self.make_frame()
 
     def make_frame(self) -> tk.Frame:
@@ -267,21 +263,13 @@ class CashPad:
         tk_euro_button_frame.get_frame().pack_propagate(False)
         tk_euro_button_frame.get_frame().pack(side=tk.LEFT)
 
-        for val in cash_values_cent:
-            eval_str = "CashButtonItem('{name}', {value}, tk_cent_button_frame.get_frame())".format(
-                name=val,
-                value=cash_values_cent[val]
-            )
-            obj: CashButtonItem = eval(eval_str)
+        for name, value in cash_values_cent.items():
+            obj = CashButtonItem(name, value, tk_cent_button_frame.get_frame())
             obj.attach_external_callback(self.update_value)
             b_elem.append(obj.generate_button())
 
-        for val in cash_values_euro:
-            eval_str = "CashButtonItem('{name}', {value}, tk_euro_button_frame.get_frame())".format(
-                name=val,
-                value=cash_values_euro[val]
-            )
-            obj: CashButtonItem = eval(eval_str)
+        for name, value in cash_values_euro.items():
+            obj = CashButtonItem(name, value, tk_euro_button_frame.get_frame())
             obj.attach_external_callback(self.update_value)
             b_elem.append(obj.generate_button())
 
@@ -308,17 +296,17 @@ class CashPad:
 class TouchRegisterUI:
     """Main class for tkinter UI"""
 
-    display_elements = []
-    button_shortnames = []
-    tr_counter = Counter()
-    total_cash = 0.0
-    current_cash = 0.0
-    current_sum = 0.0
-    db_interface = DBAccess('touchReg.db')
-    transaction_done = False
-    cash_pad: CashPad = None
-
     def __init__(self):
+        self.display_elements = []
+        self.button_shortnames = []
+        self.tr_counter = Counter()
+        self.total_cash = 0.0
+        self.current_cash = 0.0
+        self.current_sum = 0.0
+        self.db_interface = DBAccess('touchReg.db')
+        self.transaction_done = False
+        self.cash_pad = None
+
         self.db_elements = self.db_interface.db_get('food_list')
 
         """Main frame"""
@@ -405,12 +393,7 @@ class TouchRegisterUI:
             short_name = element[2]
             price = element[3]
             if name != '':
-                eval_str = "FoodButtonItem('{name}', '{short_name}', {price}, self.tk_food_frame.get_frame())".format(
-                    name=name,
-                    short_name=short_name,
-                    price=price
-                )
-                obj: FoodButtonItem = eval(eval_str)
+                obj = FoodButtonItem(name, short_name, price, self.tk_food_frame.get_frame())
                 obj.attach_external_callback(self.display_element_factory)
                 btn = obj.generate_button()
                 btn.pack()
@@ -453,7 +436,7 @@ class TouchRegisterUI:
 
     def food_function_element_factory(self):
         got_cash_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                         width=300,
+                                         width=160,
                                          height=150)
         self.got_cash_button = tk.Button(got_cash_button_frame,
                                          text='Gegeben',
@@ -463,7 +446,7 @@ class TouchRegisterUI:
                                          command=self.got_cash)
 
         cancel_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                       width=170,
+                                       width=160,
                                        height=150)
         cancel_button = tk.Button(cancel_button_frame,
                                   text='Abbrechen',
@@ -473,7 +456,7 @@ class TouchRegisterUI:
                                   command=lambda: self.end_transaction('cancel'))
 
         custom_price_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
-                                             width=170,
+                                             width=160,
                                              height=150)
         self.custom_price_button = tk.Button(custom_price_button_frame,
                                              text='Betrag',
@@ -482,15 +465,28 @@ class TouchRegisterUI:
                                              height=100,
                                              command=self.custom_price)
 
+        summary_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
+                                        width=160,
+                                        height=150)
+        summary_button = tk.Button(summary_button_frame,
+                                   text='Übersicht',
+                                   font=('Arial', 20),
+                                   width=100,
+                                   height=100,
+                                   command=self.show_summary)
+
         got_cash_button_frame.pack_propagate(False)
         got_cash_button_frame.pack(side=tk.LEFT)
         cancel_button_frame.pack_propagate(False)
         cancel_button_frame.pack(side=tk.LEFT)
         custom_price_button_frame.pack_propagate(False)
         custom_price_button_frame.pack(side=tk.LEFT)
+        summary_button_frame.pack_propagate(False)
+        summary_button_frame.pack(side=tk.LEFT)
         self.got_cash_button.pack()
         self.custom_price_button.pack()
         cancel_button.pack()
+        summary_button.pack()
 
     def got_cash_function_element_factory(self):
         got_cash_ok_button_frame = tk.Frame(self.tk_function_frame.get_frame(),
@@ -643,9 +639,9 @@ class TouchRegisterUI:
 
         date = datetime.now()
 
-        transaction_log_items.append('"' + date.ctime() + '"')
-        transaction_log_items.append(str(round(self.current_sum, 2)))
-        transaction_log_items.append(str(self.cash_pad.get_value()))
+        transaction_log_items.append(date.ctime())
+        transaction_log_items.append(round(self.current_sum, 2))
+        transaction_log_items.append(self.cash_pad.get_value())
 
         for short_name in self.tr_counter:
             sold = self.tr_counter[short_name]
@@ -654,11 +650,10 @@ class TouchRegisterUI:
             self.db_interface.db_update_sold('food_list', item_short_name=short_name, sold=sold_cumul)
 
         for key in item_dict.keys():
-            transaction_log_items.append(str(item_dict[key]))
+            transaction_log_items.append(item_dict[key])
 
-        transaction_log_str = ','.join(transaction_log_items)
-        print(transaction_log_str)
-        self.db_interface.db_create_transaction_entry('tr_list', transaction_log_str)
+        print(transaction_log_items)
+        self.db_interface.db_create_transaction_entry('tr_list', transaction_log_items)
 
     def reset_transaction(self):
         self.tk_food_frame.clear()
@@ -671,6 +666,77 @@ class TouchRegisterUI:
         self.update_sum()
         self.transaction_done = False
         # self.got_cash_button.config(state='disabled')
+
+    def show_summary(self):
+        if self.cash_pad is not None:
+            self.cash_pad.reset_value()
+        self.clear_display_element_list()
+        self.transaction_done = False
+
+        self.tk_food_frame.clear()
+        self.tk_function_frame.clear()
+
+        items = self.db_interface.db_get('food_list')
+        frame = self.tk_food_frame.get_frame()
+
+        col_widths = (380, 110, 120)  # Pixel-Breiten: Artikel, Verkauft, Umsatz
+        font_normal = ('Arial', 14)
+        font_bold = ('Arial', 14, 'bold')
+
+        def make_row(parent, col1, col2, col3, font, bg=None):
+            kw = {'bg': bg} if bg else {}
+            row = tk.Frame(parent, **kw)
+            row.pack(fill=tk.X, padx=10)
+            for text, w, anchor in [(col1, col_widths[0], tk.W),
+                                     (col2, col_widths[1], tk.E),
+                                     (col3, col_widths[2], tk.E)]:
+                cell = tk.Frame(row, width=w, height=30, **kw)
+                cell.pack_propagate(False)
+                cell.pack(side=tk.LEFT)
+                tk.Label(cell, text=text, font=font, anchor=anchor, **kw).pack(fill=tk.BOTH, expand=True)
+
+        # Header
+        make_row(frame, 'Artikel', 'Verkauft', 'Umsatz', font_bold, bg='lightgray')
+        tk.Frame(frame, height=1, bg='gray').pack(fill=tk.X, padx=10)
+
+        total_income = 0.0
+        total_expenses = 0.0
+
+        for item in items:
+            name = item[1]
+            price = item[3]
+            sold = item[4]
+            if name == '':
+                continue
+
+            amount = price * sold
+            if price >= 0:
+                total_income += amount
+            else:
+                total_expenses += amount
+
+            make_row(frame, name, str(sold), '{:.2f}€'.format(amount), font_normal)
+
+        # Separator
+        tk.Frame(frame, height=2, bg='black').pack(fill=tk.X, padx=10, pady=5)
+
+        make_row(frame, 'Einnahmen', '', '{:.2f}€'.format(total_income), font_bold)
+        make_row(frame, 'Ausgaben (Pfand)', '', '{:.2f}€'.format(total_expenses), font_bold)
+        make_row(frame, 'Gesamt', '', '{:.2f}€'.format(total_income + total_expenses),
+                 font_bold, bg='lightyellow')
+
+        # Zurück-Button im Funktionsbereich
+        back_frame = tk.Frame(self.tk_function_frame.get_frame(), width=640, height=150)
+        back_frame.pack_propagate(False)
+        back_frame.pack()
+        tk.Button(back_frame, text='Zurück', font=('Arial', 20),
+                  width=100, height=100, command=self.summary_back).pack()
+
+    def summary_back(self):
+        self.tk_food_frame.clear()
+        self.tk_function_frame.clear()
+        self.food_buttons = self.food_button_factory()
+        self.food_function_element_factory()
 
     def update_sum(self):
         cnt = Counter()
