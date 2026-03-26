@@ -5,17 +5,23 @@ name_short not null,
 price float not null,
 sold integer not null
 );
-insert into food_list (id,name,name_short,price,sold) values (1,'Knöchle mit Kraut & Brot','KK',6.5,0);
-insert into food_list (id,name,name_short,price,sold) values (2,'Leberkäse m. Kartoffelsalat','LK',5.0,0);
-insert into food_list (id,name,name_short,price,sold) values (3,'Leberkäsbrötchen','LKW',2.0,0);
-insert into food_list (id,name,name_short,price,sold) values (4,'Laugenstange, belegt','LSB',2.5,0);
-insert into food_list (id,name,name_short,price,sold) values (5,'Gerupftenbrot','GB',1.5,0);
-insert into food_list (id,name,name_short,price,sold) values (6,'Brötchen','B',0.3,0);
-insert into food_list (id,name,name_short,price,sold) values (7,'Scheibe Brot','SB',0.3,0);
-insert into food_list (id,name,name_short,price,sold) values (8,'Laugenstange','LS',1,0);
-insert into food_list (id,name,name_short,price,sold) values (9,'','EB',0,0);
-insert into food_list (id,name,name_short,price,sold) values (10,'Pfand, Krug','PFK',-1.0,0);
-insert into food_list (id,name,name_short,price,sold) values (11,'Pfand, Weinglas','PFWG',-2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (1,'Knöchle mit Kraut & Brot','KK',10.0,0);
+insert into food_list (id,name,name_short,price,sold) values (2,'Leberkäse m. Kartoffelsalat','LK',6.5,0);
+insert into food_list (id,name,name_short,price,sold) values (3,'Leberkäsbrötchen','LKW',3.0,0);
+insert into food_list (id,name,name_short,price,sold) values (4,'Laugenstange, belegt','LSB',4.0,0);
+insert into food_list (id,name,name_short,price,sold) values (5,'Gerupftenbrot','GB',3.0,0);
+insert into food_list (id,name,name_short,price,sold) values (6,'Mettbrot','MB',3.0,0);
+insert into food_list (id,name,name_short,price,sold) values (7,'Brötchen','B',0.5,0);
+insert into food_list (id,name,name_short,price,sold) values (8,'Scheibe Brot','SB',0.5,0);
+insert into food_list (id,name,name_short,price,sold) values (9,'Laugenstange','LS',1.5,0);
+insert into food_list (id,name,name_short,price,sold) values (10,'Pott Kaffee','POTTK',2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (11,'Cappuccino','CAPP',2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (12,'Cappuccino à la FFÜ','CAPPFUE',2.5,0);
+insert into food_list (id,name,name_short,price,sold) values (13,'Torte','TOR',2.5,0);
+insert into food_list (id,name,name_short,price,sold) values (14,'Kuchen','KUCH',2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (15,'','EB',0,1); -- always one sold item! Never ever change or suffer the consequences
+-- insert into food_list (id,name,name_short,price,sold) values (10,'Pfand, Krug','PFK',-1.0,0);
+-- insert into food_list (id,name,name_short,price,sold) values (11,'Pfand, Weinglas','PFWG',-2.0,0);
 
 create table tr_list (
 tr_id integer primary key autoincrement,
@@ -27,10 +33,16 @@ LK integer not null,
 LKW integer not null,
 LSB integer not null,
 GB integer not null,
+MB integer not null,
 B integer not null,
 SB integer not null,
 LS integer not null,
-EB integer not null,
-PFK integer not null,
-PFWG integer not null
+POTTK integer not null,
+CAPP integer not null,
+CAPPFUE integer not null,
+TOR integer not null,
+KUCH integer not null,
+EB integer not null
+-- PFK integer not null,
+-- PFWG integer not null
 )

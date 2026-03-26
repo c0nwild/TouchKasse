@@ -55,6 +55,20 @@ class DBAccess:
         self._db_conn.execute(cmd, (sold, item_short_name))
         self._db_conn.commit()
 
+    def db_update_custom_sum(self, table_name, item_short_name, custom_sum=0):
+        """
+        Set db entry for custom sum.
+        :param table_name: Name of the sqlite table
+        :param item_short_name: Short name of the db item to be queried
+        :param custom_sum: Custom sum value
+        :return: Nothing
+        """
+        cmd = "UPDATE {table_name} SET price=? WHERE name_short=?".format(
+            table_name=table_name
+        )
+        self._db_conn.execute(cmd, (custom_sum, item_short_name))
+        self._db_conn.commit()
+
     def set_tr_list_items(self, tr_list_items: list):
         """
         From db.fetchall comes list of tuples. This function can process it and stores it
@@ -159,7 +173,7 @@ class UIButtonItem:
         """
         return tk.Button(self._tk_master,
                          text=self._name,
-                         font=('Arial', 20),
+                         font=('Arial', 16),
                          width=100,
                          height=1,
                          command=self.button_callback)
@@ -303,6 +317,7 @@ class TouchRegisterUI:
         self.total_cash = 0.0
         self.current_cash = 0.0
         self.current_sum = 0.0
+        self.current_custom_sum = 0.0
         self.db_interface = DBAccess('touchReg.db')
         self.transaction_done = False
         self.cash_pad = None
@@ -432,6 +447,7 @@ class TouchRegisterUI:
         disp_obj['tk_price'].pack()
 
         self.display_elements.append(disp_obj)
+
         self.tr_counter = self.update_sum()
 
     def food_function_element_factory(self):
@@ -647,7 +663,13 @@ class TouchRegisterUI:
             sold = self.tr_counter[short_name]
             item_dict[short_name] = sold
             sold_cumul = sold + self.db_interface.db_get('food_list', item_name=short_name, value='sold')[0][0]
-            self.db_interface.db_update_sold('food_list', item_short_name=short_name, sold=sold_cumul)
+            # Update db with new sold value or custom sum for EB... not perfect but works for now
+            if short_name == 'EB':
+                total_custom_sum = self.db_interface.db_get('food_list', item_name=short_name, value='price')[0][0] + self.current_custom_sum
+                self.db_interface.db_update_custom_sum('food_list', item_short_name=short_name, custom_sum=total_custom_sum)
+            else:
+                self.db_interface.db_update_sold('food_list', item_short_name=short_name, sold=sold_cumul)
+
 
         for key in item_dict.keys():
             transaction_log_items.append(item_dict[key])
@@ -715,14 +737,17 @@ class TouchRegisterUI:
             else:
                 total_expenses += amount
 
+            total_custom_income = self.db_interface.db_get('food_list', item_name='EB', value='price')[0][0]
+
             make_row(frame, name, str(sold), '{:.2f}€'.format(amount), font_normal)
 
         # Separator
         tk.Frame(frame, height=2, bg='black').pack(fill=tk.X, padx=10, pady=5)
 
         make_row(frame, 'Einnahmen', '', '{:.2f}€'.format(total_income), font_bold)
+        make_row(frame, 'Einnahmen (Eigenbetrag)', '', '{:.2f}€'.format(total_custom_income), font_bold)
         make_row(frame, 'Ausgaben (Pfand)', '', '{:.2f}€'.format(total_expenses), font_bold)
-        make_row(frame, 'Gesamt', '', '{:.2f}€'.format(total_income + total_expenses),
+        make_row(frame, 'Gesamt', '', '{:.2f}€'.format(total_income + total_expenses + total_custom_income),
                  font_bold, bg='lightyellow')
 
         # Zurück-Button im Funktionsbereich
@@ -741,12 +766,16 @@ class TouchRegisterUI:
     def update_sum(self):
         cnt = Counter()
         _sum = 0.0
+        _custom_sum = 0.0
         for e in self.display_elements:
             _sum = _sum + e['price']
             cnt[e['short_name']] += 1
+            if e['short_name'] == 'EB':
+                _custom_sum = _custom_sum + e['price']
         txt = "SUMME: {sum:.02f}€".format(sum=_sum)
         self.tk_display_sum.config(text=txt)
         self.current_sum = _sum
+        self.current_custom_sum = _custom_sum
         return cnt
 
 
