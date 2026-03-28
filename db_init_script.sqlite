@@ -11,15 +11,18 @@ insert into food_list (id,name,name_short,price,sold) values (3,'Leberkäsbrötc
 insert into food_list (id,name,name_short,price,sold) values (4,'Laugenstange, belegt','LSB',4.0,0);
 insert into food_list (id,name,name_short,price,sold) values (5,'Gerupftenbrot','GB',3.0,0);
 insert into food_list (id,name,name_short,price,sold) values (6,'Mettbrot','MB',3.0,0);
-insert into food_list (id,name,name_short,price,sold) values (7,'Brötchen','B',0.5,0);
-insert into food_list (id,name,name_short,price,sold) values (8,'Scheibe Brot','SB',0.5,0);
-insert into food_list (id,name,name_short,price,sold) values (9,'Laugenstange','LS',1.5,0);
-insert into food_list (id,name,name_short,price,sold) values (10,'Pott Kaffee','POTTK',2.0,0);
-insert into food_list (id,name,name_short,price,sold) values (11,'Cappuccino','CAPP',2.0,0);
-insert into food_list (id,name,name_short,price,sold) values (12,'Cappuccino à la FFÜ','CAPPFUE',2.5,0);
-insert into food_list (id,name,name_short,price,sold) values (13,'Torte','TOR',2.5,0);
-insert into food_list (id,name,name_short,price,sold) values (14,'Kuchen','KUCH',2.0,0);
-insert into food_list (id,name,name_short,price,sold) values (15,'','EB',0,1); -- always one sold item! Never ever change or suffer the consequences
+insert into food_list (id,name,name_short,price,sold) values (7,'Portion Kraut','POKR',3.5,0);
+insert into food_list (id,name,name_short,price,sold) values (8,'Portion Kartoffelsalat','PORKS',3.5,0);
+insert into food_list (id,name,name_short,price,sold) values (9,'Scheibe Leberkäse','SLK',2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (10,'Brötchen','B',0.5,0);
+insert into food_list (id,name,name_short,price,sold) values (11,'Scheibe Brot','SB',0.5,0);
+insert into food_list (id,name,name_short,price,sold) values (12,'Laugenstange','LS',1.5,0);
+insert into food_list (id,name,name_short,price,sold) values (13,'Pott Kaffee','POTTK',2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (14,'Cappuccino','CAPP',2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (15,'Cappuccino à la FFÜ','CAPPFUE',2.5,0);
+insert into food_list (id,name,name_short,price,sold) values (16,'Torte','TOR',2.5,0);
+insert into food_list (id,name,name_short,price,sold) values (17,'Kuchen','KUCH',2.0,0);
+insert into food_list (id,name,name_short,price,sold) values (18,'','EB',0,1); -- always one sold item! Never ever change or suffer the consequences
 -- insert into food_list (id,name,name_short,price,sold) values (10,'Pfand, Krug','PFK',-1.0,0);
 -- insert into food_list (id,name,name_short,price,sold) values (11,'Pfand, Weinglas','PFWG',-2.0,0);
 
@@ -34,6 +37,9 @@ LKW integer not null,
 LSB integer not null,
 GB integer not null,
 MB integer not null,
+POKR integer not null,
+PORKS integer not null,
+SLK integer not null,
 B integer not null,
 SB integer not null,
 LS integer not null,

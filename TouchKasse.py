@@ -175,7 +175,7 @@ class UIButtonItem:
                          text=self._name,
                          font=('Arial', 16),
                          width=100,
-                         height=1,
+                         height=2,
                          command=self.button_callback)
 
     def get_name(self):
@@ -339,13 +339,27 @@ class TouchRegisterUI:
         self.tk_display_frame.get_frame().pack_propagate(False)
         self.tk_display_frame.get_frame().pack(side=tk.LEFT)
 
-        self.tk_display_element_frame = UIFrameItem('display_elements',
-                                                    width=640,
-                                                    height=700,
-                                                    pos=tk.LEFT,
-                                                    tk_root=self.tk_display_frame.get_frame())
-        self.tk_display_element_frame.get_frame().pack_propagate(False)
-        self.tk_display_element_frame.get_frame().pack()
+        display_scroll_frame = tk.Frame(self.tk_display_frame.get_frame(), width=640, height=700)
+        display_scroll_frame.pack_propagate(False)
+        display_scroll_frame.pack()
+
+        self._display_scrollbar = tk.Scrollbar(display_scroll_frame, orient=tk.VERTICAL, width=34)
+        self._display_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self._display_canvas = tk.Canvas(display_scroll_frame,
+                                         yscrollcommand=self._display_scrollbar.set,
+                                         highlightthickness=0)
+        self._display_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self._display_scrollbar.config(command=self._display_canvas.yview)
+
+        self._display_inner_frame = tk.Frame(self._display_canvas)
+        self._display_canvas.create_window((0, 0), window=self._display_inner_frame, anchor=tk.NW)
+        self._display_inner_frame.bind(
+            '<Configure>',
+            lambda _: self._display_canvas.configure(
+                scrollregion=self._display_canvas.bbox('all')
+            )
+        )
 
         self.tk_display_sum = tk.Label(self.tk_display_frame.get_frame(),
                                        text='SUMME',
@@ -402,17 +416,28 @@ class TouchRegisterUI:
 
     def food_button_factory(self):
         b_elem = []
+
+        col1_frame = tk.Frame(self.tk_food_frame.get_frame(), width=320, height=650)
+        col1_frame.pack_propagate(False)
+        col1_frame.pack(side=tk.LEFT)
+
+        col2_frame = tk.Frame(self.tk_food_frame.get_frame(), width=320, height=650)
+        col2_frame.pack_propagate(False)
+        col2_frame.pack(side=tk.LEFT)
+
+        col1_count = 0
         for element in self.db_elements:
             """db entry: id|name|shortname|price|sold """
             name = element[1]
             short_name = element[2]
             price = element[3]
             if name != '':
-                obj = FoodButtonItem(name, short_name, price, self.tk_food_frame.get_frame())
+                parent = col1_frame if col1_count < 10 else col2_frame
+                obj = FoodButtonItem(name, short_name, price, parent)
                 obj.attach_external_callback(self.display_element_factory)
-                btn = obj.generate_button()
-                btn.pack()
+                obj.generate_button().pack()
                 b_elem.append(short_name)
+                col1_count += 1
 
         return b_elem
 
@@ -423,7 +448,7 @@ class TouchRegisterUI:
         #self.got_cash_button.config(state='active')
 
         disp_obj = {
-            'tk_name': tk.Label(self.tk_display_element_frame.get_frame(),
+            'tk_name': tk.Label(self._display_inner_frame,
                                 text=name,
                                 font=('Arial', 15),
                                 justify=tk.LEFT,
@@ -431,7 +456,7 @@ class TouchRegisterUI:
                                 width=250,
                                 padx=10
                                 ),
-            'tk_price': tk.Label(self.tk_display_element_frame.get_frame(),
+            'tk_price': tk.Label(self._display_inner_frame,
                                  text="{price:.02f}€".format(price=price),
                                  font=('Arial', 15),
                                  justify=tk.LEFT,
@@ -447,6 +472,8 @@ class TouchRegisterUI:
         disp_obj['tk_price'].pack()
 
         self.display_elements.append(disp_obj)
+        self._display_inner_frame.update_idletasks()
+        self._display_canvas.yview_moveto(1.0)
 
         self.tr_counter = self.update_sum()
 
@@ -588,8 +615,10 @@ class TouchRegisterUI:
         custom_price_cancel_button.pack()
 
     def clear_display_element_list(self):
-        self.tk_display_element_frame.clear()
+        for widget in self._display_inner_frame.winfo_children():
+            widget.destroy()
         self.display_elements.clear()
+        self._display_canvas.yview_moveto(0)
         self.update_sum()
 
     def got_cash(self):
@@ -702,8 +731,8 @@ class TouchRegisterUI:
         frame = self.tk_food_frame.get_frame()
 
         col_widths = (380, 110, 120)  # Pixel-Breiten: Artikel, Verkauft, Umsatz
-        font_normal = ('Arial', 14)
-        font_bold = ('Arial', 14, 'bold')
+        font_normal = ('Arial', 10)
+        font_bold = ('Arial', 10, 'bold')
 
         def make_row(parent, col1, col2, col3, font, bg=None):
             kw = {'bg': bg} if bg else {}
@@ -712,7 +741,7 @@ class TouchRegisterUI:
             for text, w, anchor in [(col1, col_widths[0], tk.W),
                                      (col2, col_widths[1], tk.E),
                                      (col3, col_widths[2], tk.E)]:
-                cell = tk.Frame(row, width=w, height=30, **kw)
+                cell = tk.Frame(row, width=w, height=25, **kw)
                 cell.pack_propagate(False)
                 cell.pack(side=tk.LEFT)
                 tk.Label(cell, text=text, font=font, anchor=anchor, **kw).pack(fill=tk.BOTH, expand=True)
